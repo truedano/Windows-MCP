@@ -1,0 +1,18 @@
+[project]
+name = "windows-mcp"
+version = "0.1.0"
+description = "Lightweight MCP Server for interacting with Windows Operating System."
+readme = "docs/README.md"
+authors = [
+    { name = "Jeomon George", email = "jeogeoalukka@gmail" }
+]
+license = { file = "docs/LICENSE" }
+urls = { homepage = "https://github.com/Jeomon/Windows-MCP" }
+keywords = ["windows", "mcp", "ai", "desktop","ai agent"]
+requires-python = ">=3.12"
+dependencies = [
+    "mcp[cli]==1.5.0",
+    "pillow>=11.2.1",
+    "pyautogui>=0.9.54",
+    "uiautomation>=2.0.24",
+]
