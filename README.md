@@ -22,17 +22,17 @@
 
 <br>
 
-**Windows MCP** is a lightweight, open-source project that enables seamless integration between AI agents and the Windows operating system. Acting as an MCP server, it bridges the gap between LLMs and Windows operating system — allowing agents to perform tasks such as **file navigation, application control, UI interaction, QA testing** and more.
+**Windows MCP** is a lightweight, open-source project that enables seamless integration between AI agents and the Windows operating system. Acting as an MCP server bridges the gap between LLMs and the Windows operating system, allowing agents to perform tasks such as **file navigation, application control, UI interaction, QA testing,** and more.
 
 <https://github.com/user-attachments/assets/7149561b-3018-49ca-be82-035b3f054c07>
 
 ## ✨ Key Features
 
 - **Seamless Windows Integration**  
-  Interacts natively with Windows UI elements — open apps, control windows, simulate user input, and more.
+  Interacts natively with Windows UI elements, opens apps, controls windows, simulates user input, and more.
 
 - **Use Any LLM (Vision Optional)**
-   Unlike many automation tools, Windows MCP doesn't rely on any traditional computer vision techniques or specific fine-tuned models — it works with any LLMs, reducing complexity and setup time.
+   Unlike many automation tools, Windows MCP doesn't rely on any traditional computer vision techniques or specific fine-tuned models; it works with any LLMs, reducing complexity and setup time.
 
 - **Rich Toolset for UI Automation**  
   Includes tools for basic keyboard, mouse operation and capturing window/UI state.
@@ -41,7 +41,7 @@
   Minimal dependencies and easy setup with full source code available under MIT license.
 
 - **Customizable & Extendable**  
-  Easily adapt or extend tools to suite your unique automation or AI integration needs.
+  Easily adapt or extend tools to suit your unique automation or AI integration needs.
 
 - **Real-Time Interaction**  
   Typical latency between actions (e.g., from one mouse click to the next) ranges from **4 to 8 secs**, and may slightly vary based on the number of active applications and system load.
@@ -76,7 +76,7 @@ uv pip install -r pyproject.toml
 
 3. Connect to the MCP server
 
-Copy the below json with the appropriate {{PATH}} values:
+Copy the below JSON with the appropriate {{PATH}} values:
 
 ```json
 {
@@ -102,7 +102,7 @@ For Claude, save this as claude_desktop_config.json in your Claude Desktop confi
 
 4. Restart Claude Desktop
 
-Open Claude Desktop and you should now see Windows-MCP as an available integration.
+Open Claude Desktop, and you should now see Windows-MCP as an available integration.
 
 For additional Claude Desktop integration troubleshooting, see the [MCP documentation](https://modelcontextprotocol.io/quickstart/server#claude-for-desktop-integration-issues). The documentation includes helpful tips for checking logs and resolving common issues.
 
@@ -112,23 +112,23 @@ For additional Claude Desktop integration troubleshooting, see the [MCP document
 
 Claude can access the following tools to interact with Windows:
 
-- `Click-Tool`: Click on screen at given coordinates.
+- `Click-Tool`: Click on the screen at the given coordinates.
 - `Type-Tool`: Type text on an element (optionally clears existing text).
 - `Clipboard-Tool`: Copy or paste using the system clipboard.
 - `Scroll-Tool`: Scroll up/down.
 - `Drag-Tool`: Drag from one point to another.
 - `Move-Tool`: Move mouse pointer.
-- `Shortcut-Tool`: Press keyboard shortcuts (`Ctrl+C`, `Alt+Tab`, etc).
+- `Shortcut-Tool`: Press keyboard shortcuts (`Ctrl+c`, `Alt+Tab`, etc).
 - `Key-Tool`: Press a single key.
 - `Wait-Tool`: Pause for a defined duration.
 - `State-Tool`: Combined snapshot of active apps and interactive UI elements.
 - `Screenshot-Tool`: Capture a screenshot of the desktop.
-- `Launch-Tool`: To launch an application from start menu.
-- `Shell-Tool`: To execute powershell commands.
+- `Launch-Tool`: To launch an application from the start menu.
+- `Shell-Tool`: To execute PowerShell commands.
 
 ## ⚠️Caution
 
-This MCP interacts directly with your windows operating system to perform actions. Use with caution and avoid deploying it in environments where such risks cannot be tolerated.
+This MCP interacts directly with your Windows operating system to perform actions. Use with caution and avoid deploying it in environments where such risks cannot be tolerated.
 
 ## 🪪License
 
