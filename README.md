@@ -29,7 +29,7 @@
 ## ✨ Key Features
 
 - **Seamless Windows Integration**  
-  Interacts natively with Windows UI elements — open apps, control windows, simulate user input, and more.
+  Interacts natively with Windows UI elements, opens apps, controls windows, simulates user input, and more.
 
 - **Use Any LLM (Vision Optional)**
    Unlike many automation tools, Windows MCP doesn't rely on any traditional computer vision techniques or specific fine-tuned models; it works with any LLMs, reducing complexity and setup time.
