@@ -20,12 +20,18 @@ class Tree:
         return TreeState(nodes=nodes)
     
     def get_appwise_interactive_nodes(self,node:Control) -> list[TreeElementNode]:
-        apps=node.GetChildren()
-        visible_apps=filter(lambda app: self.desktop.get_app_status(app)!='Minimized',apps)
+        all_apps=node.GetChildren()
+        visible_apps = {app.Name: app for app in all_apps if self.desktop.is_app_visible(app)}
+        running_apps = self.desktop.get_apps()
+        foreground_app = running_apps[0] if running_apps else None
+        if foreground_app:
+            apps=[visible_apps.get('Taskbar'),visible_apps.get(foreground_app.name),visible_apps.get('Program Manager')]
+        else:
+            apps=[visible_apps.get('Taskbar'),visible_apps.get('Program Manager')]
         interactive_nodes=[]
         # Parallel traversal
         with ThreadPoolExecutor() as executor:
-            future_to_node = {executor.submit(self.get_interactive_nodes, app): app for app in visible_apps}
+            future_to_node = {executor.submit(self.get_interactive_nodes, app): app for app in apps}
             for future in as_completed(future_to_node):
                 try:
                     result = future.result()

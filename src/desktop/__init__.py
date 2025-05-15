@@ -69,6 +69,13 @@ class Desktop:
             return Size(width=0,height=0)
         return Size(width=window.width(),height=window.height())
     
+    def is_app_visible(self,app)->bool:
+        is_minimized=self.get_app_status(app)!='Minimized'
+        size=self.get_app_size(app)
+        area=size.width*size.height
+        is_overlay=self.is_overlay_app(app)
+        return not is_overlay and is_minimized and area>10
+    
     def is_overlay_app(self,element:Control) -> bool:
         no_children = len(element.GetChildren()) == 0
         is_name = "Overlay" in element.Name.strip()
