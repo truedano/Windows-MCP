@@ -64,7 +64,7 @@
 1. Clone the repository.
 
 ```shell
-git clone https://github.com/Computer-Agent/Windows-MCP.git
+git clone https://github.com/Jeomon/Windows-MCP.git
 cd Windows-MCP
 ```
 
@@ -139,3 +139,16 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 Contributions are welcome! Please see [CONTRIBUTING](CONTRIBUTING) for setup instructions and development guidelines.
 
 Made with ❤️ by [Jeomon George](https://github.com/Jeomon)
+
+## Citation
+
+```bibtex
+@misc{
+  author       = {George, Jeomon},
+  title        = {Windows-MCP},
+  year         = {2024},
+  publisher    = {GitHub},
+  howpublished = {\url{https://github.com/Jeomon/Windows-MCP}},
+  note         = {Lightweight open-source project for integrating LLM agents with Windows}
+}
+```
