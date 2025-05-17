@@ -8,11 +8,9 @@
   <img src="https://img.shields.io/badge/python-3.12%2B-blue" alt="Python">
   <img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-blue" alt="Platform">
   <img src="https://img.shields.io/github/last-commit/Computer-Agent/Windows-MCP" alt="Last Commit">
-
   <br>
-
-  <a href="https://x.com/computeraiagent">
-    <img src="https://img.shields.io/badge/follow-%40computeraiagent-1DA1F2?logo=twitter&style=flat" alt="Follow on Twitter">
+  <a href="https://x.com/CursorTouch">
+    <img src="https://img.shields.io/badge/follow-%40CursorTouch-1DA1F2?logo=twitter&style=flat" alt="Follow on Twitter">
   </a>
   <a href="https://discord.com/invite/Aue9Yj2VzS">
     <img src="https://img.shields.io/badge/Join%20on-Discord-5865F2?logo=discord&logoColor=white&style=flat" alt="Join us on Discord">
@@ -24,7 +22,7 @@
 
 **Windows MCP** is a lightweight, open-source project that enables seamless integration between AI agents and the Windows operating system. Acting as an MCP server bridges the gap between LLMs and the Windows operating system, allowing agents to perform tasks such as **file navigation, application control, UI interaction, QA testing,** and more.
 
-<https://github.com/user-attachments/assets/7149561b-3018-49ca-be82-035b3f054c07>
+<https://github.com/user-attachments/assets/d0e7ed1d-6189-4de6-838a-5ef8e1cad54e>
 
 ## ✨ Key Features
 
@@ -64,7 +62,7 @@
 1. Clone the repository.
 
 ```shell
-git clone https://github.com/Jeomon/Windows-MCP.git
+git clone https://github.com/CursorTouch/Windows-MCP.git
 cd Windows-MCP
 ```
 

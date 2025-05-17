@@ -13,7 +13,7 @@ class Tree:
         self.desktop=desktop
 
     def get_state(self)->TreeState:
-        sleep(0.75)
+        sleep(0.15)
         # Get the root control of the desktop
         root=GetRootControl()
         nodes=self.get_appwise_interactive_nodes(node=root)
@@ -22,12 +22,10 @@ class Tree:
     def get_appwise_interactive_nodes(self,node:Control) -> list[TreeElementNode]:
         all_apps=node.GetChildren()
         visible_apps = {app.Name: app for app in all_apps if self.desktop.is_app_visible(app)}
-        running_apps = self.desktop.get_apps()
-        foreground_app = running_apps[0] if running_apps else None
-        if foreground_app:
-            apps=[visible_apps.get('Taskbar'),visible_apps.get(foreground_app.name),visible_apps.get('Program Manager')]
-        else:
-            apps=[visible_apps.get('Taskbar'),visible_apps.get('Program Manager')]
+        apps={'Taskbar':visible_apps.pop('Taskbar'),'Program Manager':visible_apps.pop('Program Manager')}
+        if visible_apps:
+            foreground_app = list(visible_apps.values()).pop(0)
+            apps[foreground_app.Name.strip()]=foreground_app
         interactive_nodes=[]
         # Parallel traversal
         with ThreadPoolExecutor() as executor:
