@@ -20,16 +20,16 @@ thus enabling to operate the desktop like an actual USER.''')
 desktop=Desktop()
 mcp=FastMCP(name='windows-mcp',instructions=instructions)
 
-@mcp.tool(name='Launch-Tool', description='Launch an application present in start menu')
-def launch_tool(app_name: str) -> str:
-    _,status=desktop.launch_app(app_name)
+@mcp.tool(name='Launch-Tool', description='To launch an application present in start menu')
+def launch_tool(name: str) -> str:
+    _,status=desktop.launch_app(name)
     if status!=0:
-        return f'Failed to launch {app_name.title()}.'
+        return f'Failed to launch {name.title()}.'
     else:
-        return f'Launched {app_name.title()}.'
+        return f'Launched {name.title()}.'
     
 @mcp.tool(name='Powershell-Tool', description='To execute commands in powershell')
-def shell_tool(command: str) -> str:
+def powershell_tool(command: str) -> str:
     response,status=desktop.execute_command(command)
     return f'Status Code: {status}\nResponse: {response}'
 
@@ -111,7 +111,7 @@ def key_tool(key:str='')->str:
     return f'Pressed the key {key}.'
 
 @mcp.tool(name='Wait-Tool',description='Waits for the specified duration in seconds.')
-def wait_tool(duration:int=0)->str:
+def wait_tool(duration:int)->str:
     pg.sleep(duration)
     return f'Waited for {duration} seconds.'
 

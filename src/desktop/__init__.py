@@ -52,12 +52,12 @@ class Desktop:
         except subprocess.CalledProcessError as e:
             return (e.stdout.decode('latin1'),e.returncode)
         
-    def launch_app(self,app_name:str):
+    def launch_app(self,name:str):
         apps_map=self.get_apps_from_start_menu()
-        appid=apps_map.get(app_name.lower())
+        appid=apps_map.get(name.lower())
         if appid is None:
-            return (f'Application {app_name.title()} not found in start menu.',1)
-        if app_name.endswith('.exe'):
+            return (f'Application {name.title()} not found in start menu.',1)
+        if name.endswith('.exe'):
             response,status=self.execute_command(f'Start-Process "{appid}"')
         else:
             response,status=self.execute_command(f'Start-Process "shell:AppsFolder\\{appid}"')
