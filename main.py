@@ -36,10 +36,11 @@ def powershell_tool(command: str) -> str:
 @mcp.tool(name='State-Tool',description='To get the current state of the desktop')
 def state_tool()->str:
     desktop_state=desktop.get_state()
-    interactive_elements=desktop_state.tree_state.elements_to_string()
+    interactive_elements=desktop_state.tree_state.interactive_elements_to_string()
+    informative_elements=desktop_state.tree_state.informative_elements_to_string()
     apps=desktop_state.apps_to_string()
     active_app=desktop_state.active_app_to_string()
-    return f'Active App:\n{active_app}\n\nOpened Apps:\n{apps}\n\nList of Interactive Elements:\n{interactive_elements}'
+    return f'Active App:\n{active_app}\n\nOpened Apps:\n{apps}\n\nList of Interactive Elements:\n{interactive_elements}\n\nList of Informative Elements:\n{informative_elements}'
 
 @mcp.tool(name='Clipboard-Tool',description='To copy content to clipboard and retrieve it when needed')
 def clipboard_tool(mode: Literal['copy', 'paste'], text: str = None)->str:

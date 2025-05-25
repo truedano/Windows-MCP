@@ -2,10 +2,16 @@ from dataclasses import dataclass,field
 
 @dataclass
 class TreeState:
-    nodes:list['TreeElementNode']=field(default_factory=[])
+    interactive_nodes:list['TreeElementNode']=field(default_factory=[])
+    informative_nodes:list['TextElementNode']=field(default_factory=[])
 
-    def elements_to_string(self)->str:
-        return '\n'.join([f'Label: {index}|App Name: {node.app_name}|ControlType: {node.control_type}|Name: {node.name}|Shortcut: {node.shortcut}|Center: {node.center.to_string()}' for index,node in enumerate(self.nodes)])
+    def interactive_elements_to_string(self)->str:
+        return '\n'.join([f'Label: {index} App Name: {node.app_name} ControlType: {f'{node.control_type} Control'} Name: {node.name} Shortcut: {node.shortcut} Cordinates: {node.center.to_string()}' for index,node in enumerate(self.interactive_nodes)])
+    
+    def informative_elements_to_string(self)->str:
+        return '\n'.join([f'Label: {index} App Name: {node.app_name} Name: {node.name}' for index,node in enumerate(self.informative_nodes)])
+
+
 
 @dataclass
 class Center:
@@ -21,4 +27,9 @@ class TreeElementNode:
     control_type:str
     shortcut:str
     center:Center
+    app_name:str
+
+@dataclass
+class TextElementNode:
+    name:str
     app_name:str

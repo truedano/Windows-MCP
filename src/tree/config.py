@@ -3,5 +3,9 @@ INTERACTIVE_CONTROL_TYPE_NAMES=set([
     'EditControl','CheckBoxControl', 'RadioButtonControl','ComboBoxControl',
     'HyperlinkControl','SplitButtonControl','TabItemControl','CustomControl',
     'TreeItemControl','DataItemControl','HeaderItemControl','TextBoxControl',
-    'ImageControl','SpinnerControl'
+    'ImageControl','SpinnerControl','ScrollBarControl'
 ])
+
+INFORMATIVE_CONTROL_TYPE_NAMES=[
+    'TextControl','ImageControl'
+]
