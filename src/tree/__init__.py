@@ -1,6 +1,6 @@
 from src.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES,INFORMATIVE_CONTROL_TYPE_NAMES
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.tree.views import TreeElementNode, TextElementNode,Center,TreeState
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from uiautomation import GetRootControl,Control,ImageControl
 from typing import TYPE_CHECKING
 from time import sleep

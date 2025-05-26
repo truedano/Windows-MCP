@@ -1,11 +1,11 @@
 from mcp.server.fastmcp import FastMCP,Image
 from platform import system,release
+from humancursor import SystemCursor
 from src.desktop import Desktop
 from textwrap import dedent
 from typing import Literal
 import pyautogui as pg
 import pyperclip as pc
-
 
 pg.FAILSAFE=False
 pg.PAUSE=1.0
@@ -18,6 +18,7 @@ Windows MCP server provides tools to interact directly with the {os} {version} d
 thus enabling to operate the desktop like an actual USER.''')
 
 desktop=Desktop()
+cursor=SystemCursor()
 mcp=FastMCP(name='windows-mcp',instructions=instructions)
 
 @mcp.tool(name='Launch-Tool', description='To launch an application present in start menu')
@@ -57,14 +58,17 @@ def clipboard_tool(mode: Literal['copy', 'paste'], text: str = None)->str:
         raise ValueError('Invalid mode. Use "copy" or "paste".')
 
 @mcp.tool(name='Click-Tool',description='Clicks on the element at the specified cordinates.')
-def click_tool(x:int,y:int,button:Literal['left','right','middle']='left',clicks:int=1)->str:
-    pg.click(x=x,y=y,button=button,clicks=clicks,duration=0.5,tween=pg.easeInOutQuad)
+def click_tool(loc:tuple[int,int],button:Literal['left','right','middle']='left',clicks:int=1)->str:
+    x,y=loc
+    cursor.move_to(loc)
+    pg.click(button=button,clicks=clicks)
     num_clicks={1:'Single',2:'Double',3:'Triple'}
     return f'{num_clicks.get(clicks)} {button} clicked on element at ({x},{y}).'
 
 @mcp.tool(name='Type-Tool',description='Types the specified text on the selected element at the specified cordinates.')
-def type_tool(x:int,y:int,text:str,clear:bool=False):
-    pg.click(x=x,y=y,button='left',clicks=1)
+def type_tool(loc:tuple[int,int],text:str,clear:bool=False):
+    x,y=loc
+    cursor.click_on(loc)
     if clear==True:
         pg.hotkey('ctrl','a')
         pg.press('backspace')
@@ -87,18 +91,17 @@ def scroll_tool(direction:Literal['up','down']='',amount:int=0)->str:
     return f'Scrolled  {direction} by {amount}.'
 
 @mcp.tool(name='Drag-Tool',description='Drags the element to the specified coordinates.')
-def drag_tool(from_loc:tuple=(0,0),to_loc:tuple=(0,0))->str:
+def drag_tool(from_loc:tuple,to_loc:tuple)->str:
     x1,y1=from_loc
     x2,y2=to_loc
-    pg.moveTo(x1,y1,duration=0.5,tween=pg.easeInOutQuad)
-    pg.dragTo(x2,y2,duration=0.5,tween=pg.easeInOutQuad)
+    cursor.drag_and_drop(from_loc,to_loc)
     return f'Dragged the element from ({x1},{y1}) to ({x2},{y2}).'
 
 
 @mcp.tool(name='Move-Tool',description='Moves the mouse pointer to the specified coordinates.')
 def move_tool(to_loc:tuple=(0,0))->str:
     x,y=to_loc
-    pg.moveTo(x,y,duration=0.5,tween=pg.easeInOutQuad)
+    cursor.move_to(to_loc)
     return f'Moved the mouse pointer to ({x},{y}).'
 
 @mcp.tool(name='Shortcut-Tool',description='Perform a keyboard shortcut.')
