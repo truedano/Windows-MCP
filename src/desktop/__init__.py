@@ -1,4 +1,4 @@
-from uiautomation import GetScreenSize, Control, GetRootControl, ControlType
+from uiautomation import GetScreenSize, Control, GetRootControl, ControlType, GetFocusedControl
 from src.desktop.views import DesktopState,App,Size
 from src.desktop.config import EXCLUDED_APPS
 from src.tree import Tree
@@ -37,6 +37,9 @@ class Desktop:
         if window_width >= screen_width and window_height >= screen_height - taskbar_height:
             return "Maximized"
         return "Normal"
+    
+    def get_element_under_cursor(self)->Control:
+        return GetFocusedControl()
     
     def get_apps_from_start_menu(self)->dict[str,str]:
         command='Get-StartApps | ConvertTo-Csv -NoTypeInformation'
