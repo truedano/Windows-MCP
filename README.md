@@ -123,6 +123,7 @@ Claude can access the following tools to interact with Windows:
 - `Screenshot-Tool`: Capture a screenshot of the desktop.
 - `Launch-Tool`: To launch an application from the start menu.
 - `Shell-Tool`: To execute PowerShell commands.
+- `Scrape-Tool`: To scrape the entire webpage for information.
 
 ## ⚠️Caution
 

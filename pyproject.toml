@@ -12,8 +12,10 @@ keywords = ["windows", "mcp", "ai", "desktop","ai agent"]
 requires-python = ">=3.12"
 dependencies = [
     "humancursor>=1.1.5",
+    "maincontentextractor>=0.0.4",
     "mcp[cli]==1.5.0",
     "pillow>=11.2.1",
     "pyautogui>=0.9.54",
+    "requests>=2.32.3",
     "uiautomation>=2.0.24",
 ]

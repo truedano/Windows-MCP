@@ -1,3 +1,4 @@
+from main_content_extractor import MainContentExtractor
 from mcp.server.fastmcp import FastMCP,Image
 from platform import system,release
 from humancursor import SystemCursor
@@ -6,6 +7,7 @@ from textwrap import dedent
 from typing import Literal
 import pyautogui as pg
 import pyperclip as pc
+import requests
 
 pg.FAILSAFE=False
 pg.PAUSE=1.0
@@ -121,6 +123,13 @@ def key_tool(key:str='')->str:
 def wait_tool(duration:int)->str:
     pg.sleep(duration)
     return f'Waited for {duration} seconds.'
+
+@mcp.tool('Scrape Tool',description='Scrape the contents of the entire webpage from the browser')
+def scrape_tool(url:str,format:Literal['markdown','text']='markdown',desktop:Desktop=None):
+    response=requests.get(url,timeout=10)
+    html=response.text
+    content=MainContentExtractor.extract(html=html,include_links=True,output_format=format)
+    return f'Scraped the contents of the entire webpage:\n{content}'
 
 if __name__ == "__main__":
     mcp.run()
