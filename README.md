@@ -147,7 +147,7 @@ Made with ❤️ by [Jeomon George](https://github.com/Jeomon)
   title        = {Windows-MCP},
   year         = {2024},
   publisher    = {GitHub},
-  howpublished = {\url{https://github.com/Jeomon/Windows-MCP}},
+  howpublished = {\url{https://github.com/Jeomon}},
   note         = {Lightweight open-source project for integrating LLM agents with Windows}
 }
 ```
