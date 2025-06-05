@@ -124,7 +124,7 @@ def wait_tool(duration:int)->str:
     pg.sleep(duration)
     return f'Waited for {duration} seconds.'
 
-@mcp.tool('Scrape Tool',description='Scrape the contents of the entire webpage from the browser')
+@mcp.tool('Scrape-Tool',description='Scrape the contents of the entire webpage from the browser.')
 def scrape_tool(url:str,format:Literal['markdown','text']='markdown',desktop:Desktop=None):
     response=requests.get(url,timeout=10)
     html=response.text
