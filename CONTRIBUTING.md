@@ -1,4 +1,4 @@
-# Contributing to MCP-Use
+# Contributing to Windows-MCP
 
 Thank you for your interest in contributing to MCP-Use! This document provides guidelines and instructions for contributing to this project.
 
@@ -26,7 +26,7 @@ Thank you for your interest in contributing to MCP-Use! This document provides g
 
 ### Development Environment
 
-MCP-Use requires:
+Windows MCP requires:
 - Python 3.11 or later
 
 ### Installation from Source
@@ -36,7 +36,7 @@ MCP-Use requires:
 
 ```bash
 git clone https://github.com/Jeomon/Windows-MCP.git
-cd mcp-use
+cd Windows-MCP
 ```
 
 3. Install the package in development mode:
