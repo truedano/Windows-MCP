@@ -85,7 +85,7 @@ Copy the below JSON with the appropriate {{PATH}} values:
             "--directory",
             "{{PATH_TO_SRC}}/Windows-MCP",
             "run",
-            "server.py"
+            "main.py"
          ]
       }
    }
