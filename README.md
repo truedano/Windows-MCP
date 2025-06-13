@@ -2,12 +2,12 @@
 
   <h1>🪟 Windows-MCP</h1>
 
-  <a href="https://github.com/Computer-Agent/Windows-MCP/blob/main/LICENSE">
+  <a href="https://github.com/CursorTouch/Windows-MCP/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
   </a>
   <img src="https://img.shields.io/badge/python-3.12%2B-blue" alt="Python">
   <img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-blue" alt="Platform">
-  <img src="https://img.shields.io/github/last-commit/Computer-Agent/Windows-MCP" alt="Last Commit">
+  <img src="https://img.shields.io/github/last-commit/CursorTouch/Windows-MCP" alt="Last Commit">
   <br>
   <a href="https://x.com/CursorTouch">
     <img src="https://img.shields.io/badge/follow-%40CursorTouch-1DA1F2?logo=twitter&style=flat" alt="Follow on Twitter">

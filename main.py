@@ -17,7 +17,8 @@ version=release()
 
 instructions=dedent(f'''
 Windows MCP server provides tools to interact directly with the {os} {version} desktop, 
-thus enabling to operate the desktop like an actual USER.''')
+thus enabling to operate the desktop like an actual USER.
+''')
 
 desktop=Desktop()
 cursor=SystemCursor()
@@ -114,7 +115,7 @@ def shortcut_tool(shortcut:list[str]):
     pg.hotkey(*shortcut)
     return f'Pressed {'+'.join(shortcut)}.'
 
-@mcp.tool(name='Key-Tool',description='Presses a specific key on the keyboard.')
+@mcp.tool(name='Key-Tool',description='Presses a specific key on the keyboard, compactable with pyautogui.')
 def key_tool(key:str='')->str:
     pg.press(key)
     return f'Pressed the key {key}.'
