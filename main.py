@@ -1,14 +1,16 @@
-from mcp.server.fastmcp import FastMCP,Image
+from contextlib import asynccontextmanager
 from humancursor import SystemCursor
-from platform import system,release
+from platform import system, release
 from markdownify import markdownify
 from src.desktop import Desktop
+from fastmcp import FastMCP
 from textwrap import dedent
 from typing import Literal
 import uiautomation as ua
 import pyautogui as pg
 import pyperclip as pc
 import requests
+import asyncio
 
 pg.FAILSAFE=False
 pg.PAUSE=1.0
@@ -21,9 +23,15 @@ Windows MCP server provides tools to interact directly with the {os} {version} d
 thus enabling to operate the desktop like an actual USER.
 ''')
 
+@asynccontextmanager
+async def lifespan(app: FastMCP):
+    """Runs initialization code before the server starts and cleanup code after it shuts down."""
+    await asyncio.sleep(1) # Simulate startup latency
+    yield
+
 desktop=Desktop()
 cursor=SystemCursor()
-mcp=FastMCP(name='windows-mcp',instructions=instructions)
+mcp=FastMCP(name='windows-mcp',instructions=instructions,lifespan=lifespan)
 
 @mcp.tool(name='Launch-Tool', description='Launch an application from the Windows Start Menu by name (e.g., "notepad", "calculator", "chrome")')
 def launch_tool(name: str) -> str:
