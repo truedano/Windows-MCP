@@ -4,14 +4,17 @@ from dataclasses import dataclass,field
 class TreeState:
     interactive_nodes:list['TreeElementNode']=field(default_factory=[])
     informative_nodes:list['TextElementNode']=field(default_factory=[])
+    scrollable_nodes:list['ScrollElementNode']=field(default_factory=[])
 
     def interactive_elements_to_string(self)->str:
         return '\n'.join([f'Label: {index} App Name: {node.app_name} ControlType: {f'{node.control_type} Control'} Name: {node.name} Shortcut: {node.shortcut} Cordinates: {node.center.to_string()}' for index,node in enumerate(self.interactive_nodes)])
     
     def informative_elements_to_string(self)->str:
-        return '\n'.join([f'Label: {index} App Name: {node.app_name} Name: {node.name}' for index,node in enumerate(self.informative_nodes)])
-
-
+        return '\n'.join([f'App Name: {node.app_name} Name: {node.name}' for node in self.informative_nodes])
+    
+    def scrollable_elements_to_string(self)->str:
+        n=len(self.interactive_nodes)
+        return '\n'.join([f'Label: {n+index} App Name: {node.app_name} Name: {node.name} Cordinates: {node.center.to_string()} Horizontal Scrollable: {node.horizontal_scrollable} Vertical Scrollable: {node.vertical_scrollable}' for index,node in enumerate(self.scrollable_nodes)])
 
 @dataclass
 class Center:
@@ -33,3 +36,11 @@ class TreeElementNode:
 class TextElementNode:
     name:str
     app_name:str
+
+@dataclass
+class ScrollElementNode:
+    name:str
+    app_name:str
+    center:Center
+    horizontal_scrollable:bool
+    vertical_scrollable:bool

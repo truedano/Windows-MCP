@@ -1,10 +1,11 @@
-from main_content_extractor import MainContentExtractor
 from mcp.server.fastmcp import FastMCP,Image
-from platform import system,release
 from humancursor import SystemCursor
+from platform import system,release
+from markdownify import markdownify
 from src.desktop import Desktop
 from textwrap import dedent
 from typing import Literal
+import uiautomation as ua
 import pyautogui as pg
 import pyperclip as pc
 import requests
@@ -24,7 +25,7 @@ desktop=Desktop()
 cursor=SystemCursor()
 mcp=FastMCP(name='windows-mcp',instructions=instructions)
 
-@mcp.tool(name='Launch-Tool', description='To launch an application present in start menu')
+@mcp.tool(name='Launch-Tool', description='Launch an application from the Windows Start Menu by name (e.g., "notepad", "calculator", "chrome")')
 def launch_tool(name: str) -> str:
     _,status=desktop.launch_app(name)
     if status!=0:
@@ -32,21 +33,37 @@ def launch_tool(name: str) -> str:
     else:
         return f'Launched {name.title()}.'
     
-@mcp.tool(name='Powershell-Tool', description='To execute commands in powershell')
+@mcp.tool(name='Powershell-Tool', description='Execute PowerShell commands and return the output with status code')
 def powershell_tool(command: str) -> str:
     response,status=desktop.execute_command(command)
     return f'Status Code: {status}\nResponse: {response}'
 
-@mcp.tool(name='State-Tool',description='To get the current state of the desktop')
+@mcp.tool(name='State-Tool',description='Get comprehensive desktop state including active apps, interactive elements, and scrollable areas. Essential for understanding current desktop context.')
 def state_tool()->str:
     desktop_state=desktop.get_state()
     interactive_elements=desktop_state.tree_state.interactive_elements_to_string()
     informative_elements=desktop_state.tree_state.informative_elements_to_string()
+    scrollable_elements=desktop_state.tree_state.scrollable_elements_to_string()
     apps=desktop_state.apps_to_string()
     active_app=desktop_state.active_app_to_string()
-    return f'Active App:\n{active_app}\n\nOpened Apps:\n{apps}\n\nList of Interactive Elements:\n{interactive_elements}\n\nList of Informative Elements:\n{informative_elements}'
+    return dedent(f'''
+    Active App:
+    {active_app}
 
-@mcp.tool(name='Clipboard-Tool',description='To copy content to clipboard and retrieve it when needed')
+    Opened Apps:
+    {apps}
+
+    List of Interactive Elements:
+    {interactive_elements or 'No interactive elements found.'}
+
+    List of Informative Elements:
+    {informative_elements or 'No informative elements found.'}
+
+    List of Scrollable Elements:
+    {scrollable_elements or 'No scrollable elements found.'}
+    ''')
+    
+@mcp.tool(name='Clipboard-Tool',description='Copy text to clipboard or retrieve current clipboard content. Use "copy" mode with text parameter to copy, "paste" mode to retrieve.')
 def clipboard_tool(mode: Literal['copy', 'paste'], text: str = None)->str:
     if mode == 'copy':
         if text:
@@ -60,7 +77,7 @@ def clipboard_tool(mode: Literal['copy', 'paste'], text: str = None)->str:
     else:
         raise ValueError('Invalid mode. Use "copy" or "paste".')
 
-@mcp.tool(name='Click-Tool',description='Clicks on the element at the specified cordinates.')
+@mcp.tool(name='Click-Tool',description='Click on UI elements at specific coordinates. Supports left/right/middle mouse buttons and single/double/triple clicks. Use coordinates from State-Tool output.')
 def click_tool(loc:tuple[int,int],button:Literal['left','right','middle']='left',clicks:int=1)->str:
     x,y=loc
     cursor.move_to(loc)
@@ -69,7 +86,7 @@ def click_tool(loc:tuple[int,int],button:Literal['left','right','middle']='left'
     num_clicks={1:'Single',2:'Double',3:'Triple'}
     return f'{num_clicks.get(clicks)} {button} Clicked on {control.Name} Element with ControlType {control.ControlTypeName} at ({x},{y}).'
 
-@mcp.tool(name='Type-Tool',description='Types the specified text on the selected element at the specified cordinates.')
+@mcp.tool(name='Type-Tool',description='Type text into input fields, text areas, or focused elements. Set clear=True to replace existing text, False to append. Click on target element coordinates first.')
 def type_tool(loc:tuple[int,int],text:str,clear:bool=False):
     x,y=loc
     cursor.click_on(loc)
@@ -80,56 +97,57 @@ def type_tool(loc:tuple[int,int],text:str,clear:bool=False):
     pg.typewrite(text,interval=0.1)
     return f'Typed {text} on {control.Name} Element with ControlType {control.ControlTypeName} at ({x},{y}).'
 
-# @mcp.tool(name='Screenshot-Tool',description='To view the screenshot of the desktop.')
+# @mcp.tool(name='Screenshot-Tool',description='Capture and return a screenshot of the current desktop state as PNG image data.')
 # def screenshot_tool()->bytes:
 #     data=desktop.get_screenshot()
 #     return Image(data=data,format='png')
 
-@mcp.tool(name='Scroll-Tool',description='Scrolls the screen up or down by the specified amount.')
-def scroll_tool(direction:Literal['up','down']='',amount:int=0)->str:
+@mcp.tool(name='Scroll-Tool',description='Scroll at specific coordinates or current mouse position. Use wheel_times to control scroll amount (1 wheel = ~3-5 lines). Essential for navigating lists, web pages, and long content.')
+def scroll_tool(loc:tuple[int,int]=None,direction:Literal['up','down']='',wheel_times:int=1)->str:
+    if loc:
+        cursor.move_to(loc)
     if direction=='up':
-        pg.scroll(amount)
+        ua.WheelUp(wheel_times)
     elif direction=='down':
-        pg.scroll(-amount)
+        ua.WheelDown(wheel_times)
     else:
         return 'Invalid direction.'
-    return f'Scrolled  {direction} by {amount}.'
+    return f'Scrolled {direction} by {wheel_times} wheel times.'
 
-@mcp.tool(name='Drag-Tool',description='Drags the element to the specified coordinates.')
-def drag_tool(from_loc:tuple,to_loc:tuple)->str:
+@mcp.tool(name='Drag-Tool',description='Drag and drop operation from source coordinates to destination coordinates. Useful for moving files, resizing windows, or drag-and-drop interactions.')
+def drag_tool(from_loc:tuple[int,int],to_loc:tuple[int,int])->str:
     control=desktop.get_element_under_cursor()
     x1,y1=from_loc
     x2,y2=to_loc
     cursor.drag_and_drop(from_loc,to_loc)
     return f'Dragged the {control.Name} element with ControlType {control.ControlTypeName} from ({x1},{y1}) to ({x2},{y2}).'
 
-
-@mcp.tool(name='Move-Tool',description='Moves the mouse pointer to the specified coordinates.')
-def move_tool(to_loc:tuple=(0,0))->str:
+@mcp.tool(name='Move-Tool',description='Move mouse cursor to specific coordinates without clicking. Useful for hovering over elements or positioning cursor before other actions.')
+def move_tool(to_loc:tuple[int,int])->str:
     x,y=to_loc
     cursor.move_to(to_loc)
     return f'Moved the mouse pointer to ({x},{y}).'
 
-@mcp.tool(name='Shortcut-Tool',description='Perform a keyboard shortcut.')
+@mcp.tool(name='Shortcut-Tool',description='Execute keyboard shortcuts using key combinations. Pass keys as list (e.g., ["ctrl", "c"] for copy, ["alt", "tab"] for app switching, ["win", "r"] for Run dialog).')
 def shortcut_tool(shortcut:list[str]):
     pg.hotkey(*shortcut)
     return f'Pressed {'+'.join(shortcut)}.'
 
-@mcp.tool(name='Key-Tool',description='Presses a specific key on the keyboard, compactable with pyautogui.')
+@mcp.tool(name='Key-Tool',description='Press individual keyboard keys. Supports special keys like "enter", "escape", "tab", "space", "backspace", "delete", arrow keys ("up", "down", "left", "right"), function keys ("f1"-"f12").')
 def key_tool(key:str='')->str:
     pg.press(key)
     return f'Pressed the key {key}.'
 
-@mcp.tool(name='Wait-Tool',description='Waits for the specified duration in seconds.')
+@mcp.tool(name='Wait-Tool',description='Pause execution for specified duration in seconds. Useful for waiting for applications to load, animations to complete, or adding delays between actions.')
 def wait_tool(duration:int)->str:
     pg.sleep(duration)
     return f'Waited for {duration} seconds.'
 
-@mcp.tool(name='Scrape-Tool',description='Scrape the contents of the entire webpage from the browser.')
-def scrape_tool(url:str,format:Literal['markdown','text']='markdown')->str:
+@mcp.tool(name='Scrape-Tool',description='Fetch and convert webpage content to markdown format. Provide full URL including protocol (http/https). Returns structured text content suitable for analysis.')
+def scrape_tool(url:str)->str:
     response=requests.get(url,timeout=10)
     html=response.text
-    content=MainContentExtractor.extract(html=html,include_links=True,output_format=format)
+    content=markdownify(html=html)
     return f'Scraped the contents of the entire webpage:\n{content}'
 
 if __name__ == "__main__":

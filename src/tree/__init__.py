@@ -1,7 +1,7 @@
+from src.tree.views import TreeElementNode, TextElementNode, ScrollElementNode, Center, TreeState
 from src.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES,INFORMATIVE_CONTROL_TYPE_NAMES
-from src.tree.views import TreeElementNode, TextElementNode,Center,TreeState
+from uiautomation import GetRootControl,Control,ImageControl,ListControl
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from uiautomation import GetRootControl,Control,ImageControl
 from typing import TYPE_CHECKING
 from time import sleep
 
@@ -16,8 +16,8 @@ class Tree:
         sleep(0.15)
         # Get the root control of the desktop
         root=GetRootControl()
-        interactive_nodes,informative_nodes=self.get_appwise_nodes(node=root)
-        return TreeState(interactive_nodes=interactive_nodes,informative_nodes=informative_nodes)
+        interactive_nodes,informative_nodes,scrollable_nodes=self.get_appwise_nodes(node=root)
+        return TreeState(interactive_nodes=interactive_nodes,informative_nodes=informative_nodes,scrollable_nodes=scrollable_nodes)
     
     def get_appwise_nodes(self,node:Control) -> tuple[list[TreeElementNode],list[TextElementNode]]:
         all_apps=node.GetChildren()
@@ -26,7 +26,7 @@ class Tree:
         if visible_apps:
             foreground_app = list(visible_apps.values()).pop(0)
             apps[foreground_app.Name.strip()]=foreground_app
-        interactive_nodes,informative_nodes=[],[]
+        interactive_nodes,informative_nodes,scrollable_nodes=[],[],[]
         # Parallel traversal
         with ThreadPoolExecutor() as executor:
             future_to_node = {executor.submit(self.get_nodes, app): app for app in apps.values()}
@@ -34,15 +34,16 @@ class Tree:
                 try:
                     result = future.result()
                     if result:
-                        element_nodes,text_nodes=result
+                        element_nodes,text_nodes,scroll_nodes=result
                         interactive_nodes.extend(element_nodes)
                         informative_nodes.extend(text_nodes)
+                        scrollable_nodes.extend(scroll_nodes)
                 except Exception as e:
                     print(f"Error processing node {future_to_node[future].Name}: {e}")
-        return interactive_nodes,informative_nodes
+        return interactive_nodes,informative_nodes,scrollable_nodes
 
-    def get_nodes(self, node: Control) -> list[TreeElementNode]:
-        interactive_nodes, informative_nodes = [], []
+    def get_nodes(self, node: Control) -> tuple[list[TreeElementNode],list[TextElementNode],list[ScrollElementNode]]:
+        interactive_nodes, informative_nodes, scrollable_nodes = [], [], []
         app_name=node.Name.strip()
         app_name='Desktop' if app_name=='Program Manager' else app_name
         def is_element_interactive(node:Control):
@@ -84,6 +85,13 @@ class Tree:
             except Exception as ex:
                 return False
             return False
+        
+        def is_element_scrollable(node:Control):
+            try:
+                scroll_pattern=node.GetScrollPattern()
+                return scroll_pattern.VerticallyScrollable or scroll_pattern.HorizontallyScrollable
+            except Exception as ex:
+                return False
             
         def tree_traversal(node: Control):
             if is_element_interactive(node):
@@ -102,8 +110,21 @@ class Tree:
                     name=node.Name.strip() or "''",
                     app_name=app_name
                 ))
+            elif is_element_scrollable(node):
+                scroll_pattern=node.GetScrollPattern()
+                box = node.BoundingRectangle
+                x,y=box.xcenter(),box.ycenter()
+                center = Center(x=x,y=y)
+                scrollable_nodes.append(ScrollElementNode(
+                    name=node.Name.strip() or node.LocalizedControlType.capitalize() or "''",
+                    app_name=app_name,
+                    center=center,
+                    horizontal_scrollable=scroll_pattern.HorizontallyScrollable,
+                    vertical_scrollable=scroll_pattern.VerticallyScrollable
+                ))
+                
             # Recursively check all children
             for child in node.GetChildren():
                 tree_traversal(child)
         tree_traversal(node)
-        return (interactive_nodes,informative_nodes)
+        return (interactive_nodes,informative_nodes,scrollable_nodes)
