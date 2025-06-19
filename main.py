@@ -70,7 +70,7 @@ def state_tool(use_vision:bool=False)->str:
 
     List of Scrollable Elements:
     {scrollable_elements or 'No scrollable elements found.'}
-    ''')]+[Image(data=desktop_state.screenshot,format='png')] if use_vision else []
+    ''')]+([Image(data=desktop_state.screenshot,format='png')] if use_vision else [])
     
 @mcp.tool(name='Clipboard-Tool',description='Copy text to clipboard or retrieve current clipboard content. Use "copy" mode with text parameter to copy, "paste" mode to retrieve.')
 def clipboard_tool(mode: Literal['copy', 'paste'], text: str = None)->str:

@@ -1,7 +1,8 @@
 from src.tree.views import TreeElementNode, TextElementNode, ScrollElementNode, Center, TreeState
 from src.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES,INFORMATIVE_CONTROL_TYPE_NAMES
-from uiautomation import GetRootControl,Control,ImageControl,ListControl
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from uiautomation import GetRootControl,Control,ImageControl
+from src.desktop.config import AVOIDED_APPS
 from typing import TYPE_CHECKING
 from time import sleep
 
@@ -21,7 +22,7 @@ class Tree:
     
     def get_appwise_nodes(self,node:Control) -> tuple[list[TreeElementNode],list[TextElementNode]]:
         all_apps=node.GetChildren()
-        visible_apps = {app.Name: app for app in all_apps if self.desktop.is_app_visible(app)}
+        visible_apps = {app.Name: app for app in all_apps if self.desktop.is_app_visible(app) and app.Name not in AVOIDED_APPS}
         apps={'Taskbar':visible_apps.pop('Taskbar'),'Program Manager':visible_apps.pop('Program Manager')}
         if visible_apps:
             foreground_app = list(visible_apps.values()).pop(0)
