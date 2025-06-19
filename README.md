@@ -69,7 +69,7 @@ cd Windows-MCP
 2. Install dependencies:
 
 ```shell
-uv pip install -r pyproject.toml
+uv sync
 ```
 
 3. Connect to the MCP server
@@ -113,13 +113,13 @@ Claude can access the following tools to interact with Windows:
 - `Click-Tool`: Click on the screen at the given coordinates.
 - `Type-Tool`: Type text on an element (optionally clears existing text).
 - `Clipboard-Tool`: Copy or paste using the system clipboard.
-- `Scroll-Tool`: Scroll up/down.
+- `Scroll-Tool`: Scroll vertically or horizontally on the window or specific regions.
 - `Drag-Tool`: Drag from one point to another.
 - `Move-Tool`: Move mouse pointer.
 - `Shortcut-Tool`: Press keyboard shortcuts (`Ctrl+c`, `Alt+Tab`, etc).
 - `Key-Tool`: Press a single key.
 - `Wait-Tool`: Pause for a defined duration.
-- `State-Tool`: Combined snapshot of active apps and interactive UI elements.
+- `State-Tool`: Combined snapshot of active apps and interactive, textual and scrollable elements along with screenshot of the desktop.
 - `Screenshot-Tool`: Capture a screenshot of the desktop.
 - `Launch-Tool`: To launch an application from the start menu.
 - `Shell-Tool`: To execute PowerShell commands.

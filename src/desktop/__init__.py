@@ -3,8 +3,10 @@ from src.desktop.views import DesktopState,App,Size
 from src.desktop.config import EXCLUDED_APPS
 from src.tree import Tree
 from time import sleep
-import pyautogui
+from io import BytesIO
+from PIL import Image
 import subprocess
+import pyautogui
 import csv
 import io
 
@@ -12,10 +14,10 @@ class Desktop:
     def __init__(self):
         self.desktop_state=None
         
-    def get_state(self):
+    def get_state(self,use_vision:bool=False)->DesktopState:
         tree=Tree(self)
         tree_state=tree.get_state()
-        screenshot=self.get_screenshot()
+        screenshot=self.get_screenshot() if use_vision else None
         apps=self.get_apps()
         active_app,apps=(apps[0],apps[1:]) if len(apps)>0 else (None,[])
         self.desktop_state=DesktopState(apps=apps,active_app=active_app,screenshot=screenshot,tree_state=tree_state)
@@ -102,6 +104,10 @@ class Desktop:
             apps = []
         return apps
     
-    def get_screenshot(self)->bytes:
+    def get_screenshot(self,scale:float=0.7)->bytes:
+        buffer= BytesIO()
         screenshot=pyautogui.screenshot()
-        return screenshot.tobytes()
+        size=(screenshot.width*scale, screenshot.height*scale)
+        screenshot.thumbnail(size=size, resample=Image.Resampling.LANCZOS)
+        screenshot.save(buffer, format='PNG')
+        return buffer.getvalue()

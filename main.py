@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from fastmcp.utilities.types import Image
 from humancursor import SystemCursor
 from platform import system, release
 from markdownify import markdownify
@@ -46,16 +47,16 @@ def powershell_tool(command: str) -> str:
     response,status=desktop.execute_command(command)
     return f'Status Code: {status}\nResponse: {response}'
 
-@mcp.tool(name='State-Tool',description='Get comprehensive desktop state including active apps, interactive elements, and scrollable areas. Essential for understanding current desktop context.')
-def state_tool()->str:
-    desktop_state=desktop.get_state()
+@mcp.tool(name='State-Tool',description='Capture comprehensive desktop state including focused/opened applications, interactive UI elements (buttons, text fields, menus), informative content (text, labels, status), and scrollable areas. Optionally includes visual screenshot when use_vision=True. Essential for understanding current desktop context and available UI interactions.')
+def state_tool(use_vision:bool=False)->str:
+    desktop_state=desktop.get_state(use_vision=use_vision)
     interactive_elements=desktop_state.tree_state.interactive_elements_to_string()
     informative_elements=desktop_state.tree_state.informative_elements_to_string()
     scrollable_elements=desktop_state.tree_state.scrollable_elements_to_string()
     apps=desktop_state.apps_to_string()
     active_app=desktop_state.active_app_to_string()
-    return dedent(f'''
-    Active App:
+    return [dedent(f'''
+    Focused App:
     {active_app}
 
     Opened Apps:
@@ -69,7 +70,7 @@ def state_tool()->str:
 
     List of Scrollable Elements:
     {scrollable_elements or 'No scrollable elements found.'}
-    ''')
+    ''')]+[Image(data=desktop_state.screenshot,format='png')] if use_vision else []
     
 @mcp.tool(name='Clipboard-Tool',description='Copy text to clipboard or retrieve current clipboard content. Use "copy" mode with text parameter to copy, "paste" mode to retrieve.')
 def clipboard_tool(mode: Literal['copy', 'paste'], text: str = None)->str:
@@ -105,22 +106,40 @@ def type_tool(loc:tuple[int,int],text:str,clear:bool=False):
     pg.typewrite(text,interval=0.1)
     return f'Typed {text} on {control.Name} Element with ControlType {control.ControlTypeName} at ({x},{y}).'
 
-# @mcp.tool(name='Screenshot-Tool',description='Capture and return a screenshot of the current desktop state as PNG image data.')
+# @mcp.tool(name='Screenshot-Tool',description='Capture and return a screenshot of the current desktop state.')
 # def screenshot_tool()->bytes:
 #     data=desktop.get_screenshot()
 #     return Image(data=data,format='png')
 
 @mcp.tool(name='Scroll-Tool',description='Scroll at specific coordinates or current mouse position. Use wheel_times to control scroll amount (1 wheel = ~3-5 lines). Essential for navigating lists, web pages, and long content.')
-def scroll_tool(loc:tuple[int,int]=None,direction:Literal['up','down']='',wheel_times:int=1)->str:
+def scroll_tool(loc:tuple[int,int]=None,type:Literal['horizontal','vertical']='vertical',direction:Literal['up','down','left','right']='down',wheel_times:int=1)->str:
     if loc:
         cursor.move_to(loc)
-    if direction=='up':
-        ua.WheelUp(wheel_times)
-    elif direction=='down':
-        ua.WheelDown(wheel_times)
+    if type == 'vertical':
+        if direction=='up':
+            ua.WheelUp(wheel_times)
+        elif direction=='down':
+            ua.WheelDown(wheel_times)
+        else:
+            return 'Invalid direction. Use "up" or "down".'
+    elif type == 'horizontal':
+        if direction=='left':
+            pg.keyDown('Shift')
+            pg.sleep(0.05)
+            ua.WheelUp(wheel_times)
+            pg.sleep(0.05)
+            pg.keyUp('Shift')
+        elif direction=='right':
+            pg.keyDown('Shift')
+            pg.sleep(0.05)
+            ua.WheelDown(wheel_times)
+            pg.sleep(0.05)
+            pg.keyUp('Shift')
+        else:
+            return 'Invalid direction. Use "left" or "right".'
     else:
-        return 'Invalid direction.'
-    return f'Scrolled {direction} by {wheel_times} wheel times.'
+        return 'Invalid type. Use "horizontal" or "vertical".'
+    return f'Scrolled {type} {direction} by {wheel_times} wheel times.'
 
 @mcp.tool(name='Drag-Tool',description='Drag and drop operation from source coordinates to destination coordinates. Useful for moving files, resizing windows, or drag-and-drop interactions.')
 def drag_tool(from_loc:tuple[int,int],to_loc:tuple[int,int])->str:
