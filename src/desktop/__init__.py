@@ -1,6 +1,7 @@
 from uiautomation import GetScreenSize, Control, GetRootControl, ControlType, GetFocusedControl
 from src.desktop.views import DesktopState,App,Size
 from src.desktop.config import EXCLUDED_APPS
+from fuzzywuzzy import process
 from src.tree import Tree
 from time import sleep
 from io import BytesIO
@@ -17,7 +18,7 @@ class Desktop:
     def get_state(self,use_vision:bool=False)->DesktopState:
         tree=Tree(self)
         tree_state=tree.get_state()
-        screenshot=self.get_screenshot() if use_vision else None
+        screenshot=self.get_screenshot(scale=0.6) if use_vision else None
         apps=self.get_apps()
         active_app,apps=(apps[0],apps[1:]) if len(apps)>0 else (None,[])
         self.desktop_state=DesktopState(apps=apps,active_app=active_app,screenshot=screenshot,tree_state=tree_state)
@@ -59,7 +60,11 @@ class Desktop:
         
     def launch_app(self,name:str):
         apps_map=self.get_apps_from_start_menu()
-        appid=apps_map.get(name.lower())
+        matched_app=process.extractOne(name,apps_map.keys())
+        if matched_app is None:
+            return (f'Application {name.title()} not found in start menu.',1)
+        app_name,_=matched_app
+        appid=apps_map.get(app_name)
         if appid is None:
             return (f'Application {name.title()} not found in start menu.',1)
         if name.endswith('.exe'):

@@ -142,12 +142,11 @@ Made with ❤️ by [Jeomon George](https://github.com/Jeomon)
 ## Citation
 
 ```bibtex
-@misc{
+@software{
   author       = {George, Jeomon},
-  title        = {Windows-MCP},
+  title        = {Windows-MCP: Lightweight open-source project for integrating LLM agents with Windows},
   year         = {2024},
   publisher    = {GitHub},
-  howpublished = {\url{https://github.com/Jeomon}},
-  note         = {Lightweight open-source project for integrating LLM agents with Windows}
+  url={https://github.com/CursorTouch/Windows-MCP}
 }
 ```
