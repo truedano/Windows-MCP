@@ -42,7 +42,7 @@
   Easily adapt or extend tools to suit your unique automation or AI integration needs.
 
 - **Real-Time Interaction**  
-  Typical latency between actions (e.g., from one mouse click to the next) ranges from **4 to 8 secs**, and may slightly vary based on the number of active applications and system load.
+  Typical latency between actions (e.g., from one mouse click to the next) ranges from **1.5 to 2.3 secs**, and may slightly vary based on the number of active applications and system load, also the inferencing speed of the llm.
 
 ### Supported Operating Systems
 
