@@ -8,6 +8,7 @@ class App:
     depth:int
     status:Literal['Maximized','Minimized','Normal']
     size:'Size'
+    handle:int
 
     def to_string(self):
         return f'Name: {self.name}|Depth: {self.depth}|Status: {self.status}|Size: {self.size.to_string()}'

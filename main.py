@@ -114,7 +114,7 @@ def type_tool(loc:tuple[int,int],text:str,clear:bool=False):
 #     return Image(data=data,format='png')
 
 @mcp.tool(name='Switch-Tool',description='Switch to a specific application window (e.g., "notepad", "calculator", "chrome", etc.) and bring to foreground.')
-def switch_tool(name: str,desktop:Desktop=None) -> str:
+def switch_tool(name: str) -> str:
     _,status=desktop.switch_app(name)
     if status!=0:
         return f'Failed to switch to {name.title()} window.'
