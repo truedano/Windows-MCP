@@ -1,4 +1,4 @@
-from uiautomation import GetScreenSize, Control, GetRootControl, ControlType, GetFocusedControl
+from uiautomation import GetScreenSize, Control, GetRootControl, ControlType, GetFocusedControl, SetWindowTopmost
 from src.desktop.views import DesktopState,App,Size
 from src.desktop.config import EXCLUDED_APPS
 from fuzzywuzzy import process
@@ -72,6 +72,18 @@ class Desktop:
         else:
             response,status=self.execute_command(f'Start-Process "shell:AppsFolder\\{appid}"')
         return response,status
+    
+    def switch_app(self,name:str)->tuple[str,int]:
+        apps={app.name:app for app in self.desktop_state.apps}
+        matched_app:tuple[str,float]=process.extractOne(name,list(apps.keys()))
+        if matched_app is None:
+            return (f'Application {name.title()} not found.',1)
+        app_name,_=matched_app
+        app=apps.get(app_name)
+        if SetWindowTopmost(app.handle,isTopmost=True):
+            return (f'{app_name.title()} switched to foreground.',0)
+        else:
+            return (f'Failed to switch to {app_name.title()}.',1)
     
     def get_app_size(self,control:Control):
         window=control.BoundingRectangle

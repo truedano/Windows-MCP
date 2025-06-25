@@ -113,6 +113,14 @@ def type_tool(loc:tuple[int,int],text:str,clear:bool=False):
 #     data=desktop.get_screenshot()
 #     return Image(data=data,format='png')
 
+@mcp.tool(name='Switch-Tool',description='Switch to a specific application window (e.g., "notepad", "calculator", "chrome", etc.) and bring to foreground.')
+def switch_tool(name: str,desktop:Desktop=None) -> str:
+    _,status=desktop.switch_app(name)
+    if status!=0:
+        return f'Failed to switch to {name.title()} window.'
+    else:
+        return f'Switched to {name.title()} window.'
+
 @mcp.tool(name='Scroll-Tool',description='Scroll at specific coordinates or current mouse position. Use wheel_times to control scroll amount (1 wheel = ~3-5 lines). Essential for navigating lists, web pages, and long content.')
 def scroll_tool(loc:tuple[int,int]=None,type:Literal['horizontal','vertical']='vertical',direction:Literal['up','down','left','right']='down',wheel_times:int=1)->str:
     if loc:
