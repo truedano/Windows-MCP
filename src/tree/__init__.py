@@ -134,8 +134,7 @@ class Tree:
         tree_traversal(node)
         return (interactive_nodes,informative_nodes,scrollable_nodes)
     
-    def annotated_screenshot(self, nodes: list[TreeElementNode]) -> Image.Image:
-        scale = 0.7
+    def annotated_screenshot(self, nodes: list[TreeElementNode],scale:float=0.7) -> Image.Image:
         screenshot = self.desktop.get_screenshot(scale=scale)
         sleep(0.25)
         # Add padding

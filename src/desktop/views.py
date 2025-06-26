@@ -11,7 +11,7 @@ class App:
     handle:int
 
     def to_string(self):
-        return f'Name: {self.name}|Depth: {self.depth}|Status: {self.status}|Size: {self.size.to_string()}'
+        return f'Name: {self.name} Depth: {self.depth} Status: {self.status} Size: {self.size.to_string()}'
 
 @dataclass
 class Size:
