@@ -18,7 +18,12 @@ class Desktop:
     def get_state(self,use_vision:bool=False)->DesktopState:
         tree=Tree(self)
         tree_state=tree.get_state()
-        screenshot=self.get_screenshot(scale=0.6) if use_vision else None
+        if use_vision:
+            nodes=tree_state.interactive_nodes
+            annotated_screenshot=tree.annotated_screenshot(nodes=nodes) if use_vision else None
+            screenshot=self.screenshot_in_bytes(screenshot=annotated_screenshot)
+        else:
+            screenshot=None
         apps=self.get_apps()
         active_app,apps=(apps[0],apps[1:]) if len(apps)>0 else (None,[])
         self.desktop_state=DesktopState(apps=apps,active_app=active_app,screenshot=screenshot,tree_state=tree_state)
@@ -121,10 +126,14 @@ class Desktop:
             apps = []
         return apps
     
-    def get_screenshot(self,scale:float=0.7)->bytes:
-        buffer= BytesIO()
+    def screenshot_in_bytes(self,screenshot:Image.Image)->bytes:
+        io=BytesIO()
+        screenshot.save(io,format='PNG')
+        bytes=io.getvalue()
+        return bytes
+
+    def get_screenshot(self,scale:float=0.7)->Image.Image:
         screenshot=pyautogui.screenshot()
         size=(screenshot.width*scale, screenshot.height*scale)
         screenshot.thumbnail(size=size, resample=Image.Resampling.LANCZOS)
-        screenshot.save(buffer, format='PNG')
-        return buffer.getvalue()
+        return screenshot

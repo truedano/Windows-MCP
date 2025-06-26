@@ -1,10 +1,12 @@
-from src.tree.views import TreeElementNode, TextElementNode, ScrollElementNode, Center, TreeState
+from src.tree.views import TreeElementNode, TextElementNode, ScrollElementNode, Center, TreeState, BoundingBox
 from src.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES,INFORMATIVE_CONTROL_TYPE_NAMES
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from uiautomation import GetRootControl,Control,ImageControl
 from src.desktop.config import AVOIDED_APPS
+from PIL import ImageDraw,Image,ImageFont
 from typing import TYPE_CHECKING
 from time import sleep
+import random
 
 if TYPE_CHECKING:
     from src.desktop import Desktop
@@ -97,12 +99,14 @@ class Tree:
         def tree_traversal(node: Control):
             if is_element_interactive(node):
                 box = node.BoundingRectangle
+                bounding_box=BoundingBox(left=box.left,top=box.top,right=box.right,bottom=box.bottom)
                 x,y=box.xcenter(),box.ycenter()
                 center = Center(x=x,y=y)
                 interactive_nodes.append(TreeElementNode(
                     name=node.Name.strip() or "''",
                     control_type=node.LocalizedControlType.title(),
                     shortcut=node.AcceleratorKey or "''",
+                    bounding_box=bounding_box,
                     center=center,
                     app_name=app_name
                 ))
@@ -129,3 +133,59 @@ class Tree:
                 tree_traversal(child)
         tree_traversal(node)
         return (interactive_nodes,informative_nodes,scrollable_nodes)
+    
+    def annotated_screenshot(self, nodes: list[TreeElementNode]) -> Image.Image:
+        scale = 0.7
+        screenshot = self.desktop.get_screenshot(scale=scale)
+        sleep(0.25)
+        # Add padding
+        padding = 20
+        width = screenshot.width + (2 * padding)
+        height = screenshot.height + (2 * padding)
+        padded_screenshot = Image.new("RGB", (width, height), color=(255, 255, 255))
+        padded_screenshot.paste(screenshot, (padding, padding))
+
+        draw = ImageDraw.Draw(padded_screenshot)
+        font_size = 12
+        try:
+            font = ImageFont.truetype('arial.ttf', font_size)
+        except:
+            font = ImageFont.load_default()
+
+        def get_random_color():
+            return "#{:06x}".format(random.randint(0, 0xFFFFFF))
+
+        def draw_annotation(label, node: TreeElementNode):
+            box = node.bounding_box
+            color = get_random_color()
+
+            # Scale and pad the bounding box
+            adjusted_box = (
+                int(box.left * scale) + padding,
+                int(box.top * scale) + padding,
+                int(box.right * scale) + padding,
+                int(box.bottom * scale) + padding
+            )
+
+            # Draw bounding box
+            draw.rectangle(adjusted_box, outline=color, width=2)
+
+            # Label dimensions
+            label_width = draw.textlength(str(label), font=font)
+            label_height = font_size
+            left, top, right, bottom = adjusted_box
+
+            # Label position above bounding box
+            label_x1 = right - label_width
+            label_y1 = top - label_height - 4
+            label_x2 = label_x1 + label_width
+            label_y2 = label_y1 + label_height + 4
+
+            # Draw label background and text
+            draw.rectangle([(label_x1, label_y1), (label_x2, label_y2)], fill=color)
+            draw.text((label_x1 + 2, label_y1 + 2), str(label), fill=(255, 255, 255), font=font)
+
+        # Draw annotations in parallel
+        with ThreadPoolExecutor() as executor:
+            executor.map(draw_annotation, range(len(nodes)), nodes)
+        return padded_screenshot

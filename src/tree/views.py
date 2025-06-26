@@ -23,6 +23,16 @@ class Center:
 
     def to_string(self)->str:
         return f'({self.x},{self.y})'
+    
+@dataclass
+class BoundingBox:
+    left:int
+    top:int
+    right:int
+    bottom:int
+
+    def to_string(self):
+        return f'({self.left},{self.top},{self.right},{self.bottom})'
 
 @dataclass
 class TreeElementNode:
