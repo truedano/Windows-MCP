@@ -5,8 +5,8 @@
   <a href="https://github.com/CursorTouch/Windows-MCP/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
   </a>
-  <img src="https://img.shields.io/badge/python-3.12%2B-blue" alt="Python">
-  <img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-blue" alt="Platform">
+  <img src="https://img.shields.io/badge/python-3.13%2B-blue" alt="Python">
+  <img src="https://img.shields.io/badge/platform-Windows%207–11-blue" alt="Platform: Windows 7 to 11">
   <img src="https://img.shields.io/github/last-commit/CursorTouch/Windows-MCP" alt="Last Commit">
   <br>
   <a href="https://x.com/CursorTouch">
@@ -68,41 +68,17 @@ git clone https://github.com/CursorTouch/Windows-MCP.git
 cd Windows-MCP
 ```
 
-2. Install dependencies:
+2. Build Desktop Extension `DXT`:
 
 ```shell
-uv sync
+npx @anthropic-ai/dxt pack
 ```
 
-3. Connect to the MCP server
+3. Open Claude Desktop:
 
-Copy the below JSON with the appropriate {{PATH}} values:
+Go to Claude Desktop: Settings->Extensions->Install Extension (locate the `.dxt` file)-> Install
 
-```json
-{
-   "mcpServers": {
-      "windows-mcp": {
-         "command": "{{PATH_TO_UV}}",
-         "args": [
-            "--directory",
-            "{{PATH_TO_SRC}}/Windows-MCP",
-            "run",
-            "main.py"
-         ]
-      }
-   }
-}
-```
-
-For Claude, save this as claude_desktop_config.json in your Claude Desktop configuration directory at:
-
-```shell
-%APPDATA%/Claude/claude_desktop_config.json
-```
-
-4. Restart Claude Desktop
-
-Open Claude Desktop, and you should now see Windows-MCP as an available integration.
+Finally Enjoy 🥳.
 
 For additional Claude Desktop integration troubleshooting, see the [MCP documentation](https://modelcontextprotocol.io/quickstart/server#claude-for-desktop-integration-issues). The documentation includes helpful tips for checking logs and resolving common issues.
 

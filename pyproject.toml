@@ -2,10 +2,10 @@
 name = "windows-mcp"
 version = "0.1.0"
 description = "Lightweight MCP Server for interacting with Windows Operating System."
-readme = "README.md"
 authors = [
     { name = "Jeomon George", email = "jeogeoalukka@gmail.com" }
 ]
+readme = "README.md"
 license = { file = "LICENSE" }
 urls = { homepage = "https://github.com/CursorTouch" }
 keywords = ["windows", "mcp", "ai", "desktop","ai agent"]
