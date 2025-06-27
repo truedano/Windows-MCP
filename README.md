@@ -46,6 +46,8 @@
 
 ### Supported Operating Systems
 
+- Windows 7
+- Windows 8, 8.1
 - Windows 10
 - Windows 11  
 
@@ -53,7 +55,7 @@
 
 ### Prerequisites
 
-- Python 3.12+
+- Python 3.13+
 - Anthropic Claude Desktop app or other MCP Clients
 - UV (Python package manager), install with `pip install uv`
 
