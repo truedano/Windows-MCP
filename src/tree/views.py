@@ -38,6 +38,7 @@ class BoundingBox:
 class TreeElementNode:
     name:str
     control_type:str
+    bounding_box:BoundingBox
     shortcut:str
     center:Center
     app_name:str
@@ -52,5 +53,6 @@ class ScrollElementNode:
     name:str
     app_name:str
     center:Center
+    bounding_box:BoundingBox
     horizontal_scrollable:bool
     vertical_scrollable:bool

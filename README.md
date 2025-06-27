@@ -108,7 +108,6 @@ Claude can access the following tools to interact with Windows:
 
 [![Star History Chart](https://api.star-history.com/svg?repos=CursorTouch/Windows-MCP&type=Date)](https://www.star-history.com/#CursorTouch/Windows-MCP&Date)
 
-
 ## ⚠️Caution
 
 This MCP interacts directly with your Windows operating system to perform actions. Use with caution and avoid deploying it in environments where such risks cannot be tolerated.

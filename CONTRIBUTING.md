@@ -1,6 +1,6 @@
 # Contributing to Windows-MCP
 
-Thank you for your interest in contributing to MCP-Use! This document provides guidelines and instructions for contributing to this project.
+Thank you for your interest in contributing to Windows-MCP! This document provides guidelines and instructions for contributing to this project.
 
 ## Table of Contents
 
@@ -26,31 +26,26 @@ Thank you for your interest in contributing to MCP-Use! This document provides g
 
 ### Development Environment
 
-Windows MCP requires:
-- Python 3.11 or later
+Windows-MCP requires:
+- Python 3.13 or later
 
 ### Installation from Source
 
 1. Fork the repository on GitHub.
 2. Clone your fork locally:
-
-```bash
-git clone https://github.com/Jeomon/Windows-MCP.git
-cd Windows-MCP
-```
-
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/windows-MCP.git
+   cd windows-mcp
+   ```
 3. Install the package in development mode:
-
-```bash
-pip install -e ".[dev,search]"
-```
-
+   ```bash
+   pip install -e ".[dev,search]"
+   ```
 4. Set up pre-commit hooks:
-
-```bash
-pip install pre-commit
-pre-commit install
-```
+   ```bash
+   pip install pre-commit
+   pre-commit install
+   ```
 
 ## Development Workflow
 
@@ -58,18 +53,18 @@ pre-commit install
 
 - `main` branch contains the latest stable code
 - Create feature branches from `main` named according to the feature you're implementing: `feature/your-feature-name`
-- For bug fixes, use: `fix/bug-description`
+- For bug fixes, MCP: `fix/bug-description`
 
 ### Commit Messages
 
 For now no commit style is enforced, try to keep your commit messages informational.
-
 ### Code Style
 
-Key style guidelines:
+We use [Ruff](https://github.com/astral-sh/ruff) for code formatting and linting. The configuration is in `ruff.toml`.
 
+Key style guidelines:
 - Line length: 100 characters
-- Use double quotes for strings
+- MCP double quotes for strings
 - Follow PEP 8 naming conventions
 - Add type hints to function signatures
 
@@ -78,7 +73,7 @@ Key style guidelines:
 We use pre-commit hooks to ensure code quality before committing. The configuration is in `.pre-commit-config.yaml`.
 
 The hooks will:
-
+- Format code using Ruff
 - Run linting checks
 - Check for trailing whitespace and fix it
 - Ensure files end with a newline
@@ -120,25 +115,24 @@ pytest tests/
 ## Documentation
 
 - Update docstrings for new or modified functions, classes, and methods
-- Use Google-style docstrings:
+- MCP Google-style docstrings:
+  ```python
+  def function_name(param1: type, param2: type) -> return_type:
+      """Short description.
 
-```python
-def function_name(param1: type, param2: type) -> return_type:
-    """Short description.
       Longer description if needed.
 
-     Args:
-        param1: Description of param1
-        param2: Description of param2
+      Args:
+          param1: Description of param1
+          param2: Description of param2
 
-    Returns:
-        Description of return value
+      Returns:
+          Description of return value
 
-    Raises:
-        ExceptionType: When and why this exception is raised
-    """
-```
-
+      Raises:
+          ExceptionType: When and why this exception is raised
+      """
+  ```
 - Update README.md for user-facing changes
 
 ## Getting Help
