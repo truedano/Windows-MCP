@@ -57,7 +57,8 @@
 
 - Python 3.13+
 - Anthropic Claude Desktop app or other MCP Clients
-- UV (Python package manager), install with `pip install uv`
+- UV (Package Manager) from Astra, install with `pip install uv`
+- DXT (Desktop Extension) from Antropic, install with `npm install -g @anthropic-ai/dxt`
 
 ## 🏁 Getting Started
 
