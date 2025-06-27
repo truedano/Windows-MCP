@@ -166,5 +166,6 @@ downloads
 uploads
 user_data
 .vscode
+*.dxt
 
 node_modules

@@ -20,9 +20,12 @@
     "type": "python",
     "entry_point": "main.py",
     "mcp_config": {
-      "command": "python",
+      "command": "uv",
       "args": [
-        "${__dirname}/main.py"
+        "--directory",
+        "${__dirname}",
+        "run",
+        "main.py"
       ],
       "env": {
         
