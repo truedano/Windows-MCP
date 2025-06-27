@@ -102,16 +102,11 @@ def type_tool(loc:tuple[int,int],text:str,clear:bool=False):
     x,y=loc
     cursor.click_on(loc)
     control=desktop.get_element_under_cursor()
-    if clear==True:
+    if clear=='True':
         pg.hotkey('ctrl','a')
         pg.press('backspace')
     pg.typewrite(text,interval=0.1)
     return f'Typed {text} on {control.Name} Element with ControlType {control.ControlTypeName} at ({x},{y}).'
-
-# @mcp.tool(name='Screenshot-Tool',description='Capture and return a screenshot of the current desktop state.')
-# def screenshot_tool()->bytes:
-#     data=desktop.get_screenshot()
-#     return Image(data=data,format='png')
 
 @mcp.tool(name='Switch-Tool',description='Switch to a specific application window (e.g., "notepad", "calculator", "chrome", etc.) and bring to foreground.')
 def switch_tool(name: str) -> str:
