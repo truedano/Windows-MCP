@@ -2,6 +2,7 @@ from src.tree.views import TreeElementNode, TextElementNode, ScrollElementNode, 
 from src.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES,INFORMATIVE_CONTROL_TYPE_NAMES, DEFAULT_ACTIONS
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from uiautomation import GetRootControl,Control,ImageControl
+from src.tree.utils import random_point_within_bounding_box
 from src.desktop.config import AVOIDED_APPS
 from PIL import ImageDraw,Image,ImageFont
 from typing import TYPE_CHECKING
@@ -107,20 +108,56 @@ class Tree:
             except Exception:
                 return False
             
+        def element_has_child_element(node:Control,control_type:str,child_control_type:str):
+            if node.ControlTypeName==control_type:
+                first_child=node.GetFirstChildControl()
+                if first_child is None:
+                    return False
+                return first_child.ControlTypeName==child_control_type
+            
+        def group_has_name(node:Control):
+            try:
+                if node.ControlTypeName=='GroupControl':
+                    if not str(node.Name).strip():
+                        return True
+                    return False
+            except Exception:
+                return False
+        
+        def dom_correction(node:Control):
+            if group_has_name(node) or element_has_child_element(node,'list item','link') or element_has_child_element(node,'item','link'):
+                interactive_nodes.pop()
+            elif element_has_child_element(node,'link','heading'):
+                interactive_nodes.pop()
+                node=node.GetFirstChildControl()
+                x,y=random_point_within_bounding_box(node=node)
+                box = node.BoundingRectangle
+                center = Center(x=x,y=y)
+                interactive_nodes.append(TreeElementNode(
+                    name=node.Name.strip() or "''",
+                    control_type="link",
+                    shortcut=node.AcceleratorKey or "''",
+                    bounding_box=BoundingBox(left=box.left,top=box.top,right=box.right,bottom=box.bottom,width=box.width(),height=box.height()),
+                    center=center,
+                    app_name=app_name
+                ))
+            
         def tree_traversal(node: Control):
             if is_element_interactive(node):
                 box = node.BoundingRectangle
                 bounding_box=BoundingBox(left=box.left,top=box.top,right=box.right,bottom=box.bottom)
-                x,y=box.xcenter(),box.ycenter()
+                x,y=random_point_within_bounding_box(node=node)
                 center = Center(x=x,y=y)
+                name=node.Name.strip() or "''"
                 interactive_nodes.append(TreeElementNode(
-                    name=node.Name.strip() or "''",
+                    name=name,
                     control_type=node.LocalizedControlType.title(),
                     shortcut=node.AcceleratorKey or "''",
                     bounding_box=bounding_box,
                     center=center,
                     app_name=app_name
                 ))
+                dom_correction(node)
             elif is_element_text(node):
                 informative_nodes.append(TextElementNode(
                     name=node.Name.strip() or "''",
@@ -129,11 +166,13 @@ class Tree:
             elif is_element_scrollable(node):
                 scroll_pattern=node.GetScrollPattern()
                 box = node.BoundingRectangle
+                bounding_box=BoundingBox(left=box.left,top=box.top,right=box.right,bottom=box.bottom)
                 x,y=box.xcenter(),box.ycenter()
                 center = Center(x=x,y=y)
                 scrollable_nodes.append(ScrollElementNode(
                     name=node.Name.strip() or node.LocalizedControlType.capitalize() or "''",
                     app_name=app_name,
+                    bounding_box=bounding_box,
                     center=center,
                     horizontal_scrollable=scroll_pattern.HorizontallyScrollable,
                     vertical_scrollable=scroll_pattern.VerticallyScrollable
@@ -199,3 +238,9 @@ class Tree:
         with ThreadPoolExecutor() as executor:
             executor.map(draw_annotation, range(len(nodes)), nodes)
         return padded_screenshot
+    
+    def get_annotated_image_data(self)->tuple[Image.Image,list[TreeElementNode]]:
+        node=GetRootControl()
+        nodes,_,_=self.get_appwise_nodes(node=node)
+        screenshot=self.annotated_screenshot(nodes=nodes,scale=1.0)
+        return screenshot,nodes
