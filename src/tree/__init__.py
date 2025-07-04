@@ -71,6 +71,7 @@ class Tree:
             return False
         
         def is_element_visible(node:Control,threshold:int=0):
+            is_control=node.IsControlElement
             box=node.BoundingRectangle
             if box.isempty():
                 return False
@@ -78,7 +79,7 @@ class Tree:
             height=box.height()
             area=width*height
             is_offscreen=not node.IsOffscreen
-            return area > threshold and is_offscreen
+            return area > threshold and is_offscreen and is_control
     
         def is_element_enabled(node:Control):
             try:
