@@ -17,7 +17,7 @@ class Tree:
         self.desktop=desktop
 
     def get_state(self)->TreeState:
-        sleep(0.15)
+        sleep(1.0)
         # Get the root control of the desktop
         root=GetRootControl()
         interactive_nodes,informative_nodes,scrollable_nodes=self.get_appwise_nodes(node=root)
@@ -130,7 +130,7 @@ class Tree:
             elif element_has_child_element(node,'link','heading'):
                 interactive_nodes.pop()
                 node=node.GetFirstChildControl()
-                x,y=random_point_within_bounding_box(node=node)
+                x,y=random_point_within_bounding_box(node=node,scale_factor=0.7)
                 box = node.BoundingRectangle
                 center = Center(x=x,y=y)
                 interactive_nodes.append(TreeElementNode(
