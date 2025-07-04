@@ -116,6 +116,11 @@ Claude can access the following tools to interact with Windows:
 
 This MCP interacts directly with your Windows operating system to perform actions. Use with caution and avoid deploying it in environments where such risks cannot be tolerated.
 
+## 📝 Limitations
+
+- Selecting specific sections of the text in a paragraph, as the MCP is relying on a11y tree. (⌛ Working on it.)
+- `Type-Tool` is meant for typing text, not programming in IDE because of it types program as a whole in a file. (⌛ Working on it.)
+
 ## 🪪License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
