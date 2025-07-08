@@ -66,6 +66,35 @@
 
 ## 🏁 Getting Started
 
+### Gemini CLI
+
+1. Navigate to `%USERPROFILE%/.gemini` in File Explorer and open `settings.json`.
+
+2. Add the `windows-mcp` config in the `settings.json` and save it.
+
+```json
+{
+  "theme": "Default",
+  "selectedAuthType": "oauth-personal",
+//MCP Server Config
+  "mcpServers": {
+    "windows-mcp": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "<path to the windows-mcp directory>",
+        "run",
+        "main.py"
+      ]
+    }
+  }
+}
+```
+
+3. Rerun Gemini CLI in terminal. Enjoy 🥳
+
+### Claude Desktop
+
 1. Clone the repository.
 
 ```shell

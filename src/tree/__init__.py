@@ -178,7 +178,7 @@ class Tree:
             if is_element_interactive(node):
                 box = node.BoundingRectangle
                 bounding_box=BoundingBox(left=box.left,top=box.top,right=box.right,bottom=box.bottom)
-                x,y=random_point_within_bounding_box(node=node)
+                x,y=random_point_within_bounding_box(node=node,scale_factor=0.5)
                 center = Center(x=x,y=y)
                 name=node.Name.strip() or "''"
                 interactive_nodes.append(TreeElementNode(
