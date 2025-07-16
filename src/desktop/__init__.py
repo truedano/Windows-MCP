@@ -1,7 +1,8 @@
 from uiautomation import GetScreenSize, Control, GetRootControl, ControlType, GetFocusedControl, SetWindowTopmost
+from src.desktop.config import EXCLUDED_APPS,BROWSER_NAMES
 from src.desktop.views import DesktopState,App,Size
-from src.desktop.config import EXCLUDED_APPS
 from fuzzywuzzy import process
+from psutil import Process
 from src.tree import Tree
 from time import sleep
 from io import BytesIO
@@ -48,6 +49,10 @@ class Desktop:
     
     def get_element_under_cursor(self)->Control:
         return GetFocusedControl()
+    
+    def is_app_browser(self,node:Control):
+        process=Process(node.ProcessId)
+        return process.name() in BROWSER_NAMES
     
     def get_apps_from_start_menu(self)->dict[str,str]:
         command='Get-StartApps | ConvertTo-Csv -NoTypeInformation'

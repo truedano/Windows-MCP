@@ -1,10 +1,10 @@
-from src.tree.views import TreeElementNode, TextElementNode, ScrollElementNode, Center, TreeState, BoundingBox
+from src.tree.views import TreeElementNode, TextElementNode, ScrollElementNode, Center, BoundingBox, TreeState
 from src.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES,INFORMATIVE_CONTROL_TYPE_NAMES, DEFAULT_ACTIONS
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from uiautomation import GetRootControl,Control,ImageControl
+from uiautomation import GetRootControl,Control,ImageControl,ScrollPattern
 from src.tree.utils import random_point_within_bounding_box
-from src.desktop.config import AVOIDED_APPS
-from PIL import ImageDraw,Image,ImageFont
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from src.desktop.config import AVOIDED_APPS,EXCLUDED_APPS
+from PIL import Image, ImageFont, ImageDraw
 from typing import TYPE_CHECKING
 from time import sleep
 import random
@@ -17,7 +17,7 @@ class Tree:
         self.desktop=desktop
 
     def get_state(self)->TreeState:
-        sleep(1.0)
+        sleep(0.5)
         # Get the root control of the desktop
         root=GetRootControl()
         interactive_nodes,informative_nodes,scrollable_nodes=self.get_appwise_nodes(node=root)
@@ -26,14 +26,15 @@ class Tree:
     def get_appwise_nodes(self,node:Control) -> tuple[list[TreeElementNode],list[TextElementNode]]:
         all_apps=node.GetChildren()
         visible_apps = {app.Name: app for app in all_apps if self.desktop.is_app_visible(app) and app.Name not in AVOIDED_APPS}
-        # apps={'Taskbar':visible_apps.pop('Taskbar'),'Program Manager':visible_apps.pop('Program Manager')}
-        # if visible_apps:
-        #     foreground_app = list(visible_apps.values()).pop(0)
-        #     apps[foreground_app.Name.strip()]=foreground_app
+        apps={'Taskbar':visible_apps.pop('Taskbar'),'Program Manager':visible_apps.pop('Program Manager')}
+        if visible_apps:
+            foreground_app = list(visible_apps.values()).pop(0)
+            apps[foreground_app.Name.strip()]=foreground_app
+        del visible_apps
         interactive_nodes,informative_nodes,scrollable_nodes=[],[],[]
-        # Parallel traversal
+        # Parallel traversal (using ThreadPoolExecutor) to get nodes from each app
         with ThreadPoolExecutor() as executor:
-            future_to_node = {executor.submit(self.get_nodes, app): app for app in visible_apps.values()}
+            future_to_node = {executor.submit(self.get_nodes, app): app for app in apps.values()}
             for future in as_completed(future_to_node):
                 try:
                     result = future.result()
@@ -46,29 +47,12 @@ class Tree:
                     print(f"Error processing node {future_to_node[future].Name}: {e}")
         return interactive_nodes,informative_nodes,scrollable_nodes
 
-    def get_nodes(self, node: Control) -> tuple[list[TreeElementNode],list[TextElementNode],list[ScrollElementNode]]:
-        interactive_nodes, informative_nodes, scrollable_nodes = [], [], []
+    def get_nodes(self, node: Control, is_browser=False) -> tuple[list[TreeElementNode],list[TextElementNode],list[ScrollElementNode]]:
         app_name=node.Name.strip()
         app_name='Desktop' if app_name=='Program Manager' else app_name
-        
-        def is_element_interactive(node:Control):
-            try:
-                if node.ControlTypeName in INTERACTIVE_CONTROL_TYPE_NAMES:
-                    if is_element_visible(node) and is_element_enabled(node) and not is_element_image(node):
-                        return True
-                elif node.ControlTypeName=='GroupControl':
-                    if is_element_visible(node) and is_element_enabled(node) and (is_default_action(node) or is_keyboard_focusable(node)):
-                        return True
-            except Exception:
-                return False
-            return False
-        
-        def is_default_action(node:Control):
-            legacy_pattern=node.GetLegacyIAccessiblePattern()
-            default_action=legacy_pattern.DefaultAction
-            if default_action in DEFAULT_ACTIONS:
-                return True
-            return False
+        window_width,window_height=node.BoundingRectangle.width(),node.BoundingRectangle.height()
+        is_browser=self.desktop.is_app_browser(node)
+        interactive_nodes, informative_nodes, scrollable_nodes = [], [], []
         
         def is_element_visible(node:Control,threshold:int=0):
             is_control=node.IsControlElement
@@ -78,7 +62,7 @@ class Tree:
             width=box.width()
             height=box.height()
             area=width*height
-            is_offscreen=not node.IsOffscreen
+            is_offscreen=(not node.IsOffscreen) or node.ControlTypeName in ['EditControl']
             return area > threshold and is_offscreen and is_control
     
         def is_element_enabled(node:Control):
@@ -86,10 +70,17 @@ class Tree:
                 return node.IsEnabled
             except Exception:
                 return False
+            
+        def is_default_action(node:Control):
+            legacy_pattern=node.GetLegacyIAccessiblePattern()
+            default_action=legacy_pattern.DefaultAction.title()
+            if default_action in DEFAULT_ACTIONS:
+                return True
+            return False
         
         def is_element_image(node:Control):
             if isinstance(node,ImageControl):
-                if not node.Name.strip() or node.LocalizedControlType=='graphic':
+                if node.LocalizedControlType=='graphic' or not node.IsKeyboardFocusable:
                     return True
             return False
         
@@ -104,32 +95,46 @@ class Tree:
         
         def is_element_scrollable(node:Control):
             try:
-                scroll_pattern=node.GetScrollPattern()
+                scroll_pattern:ScrollPattern=node.GetScrollPattern()
                 return scroll_pattern.VerticallyScrollable or scroll_pattern.HorizontallyScrollable
             except Exception:
                 return False
             
+        def is_keyboard_focusable(node:Control):
+            try:
+                if node.ControlTypeName in set(['EditControl','ButtonControl','CheckBoxControl','RadioButtonControl','TabItemControl']):
+                    return True
+                return node.IsKeyboardFocusable
+            except Exception:
+                return False
+            
         def element_has_child_element(node:Control,control_type:str,child_control_type:str):
-            if node.ControlTypeName==control_type:
+            if node.LocalizedControlType==control_type:
                 first_child=node.GetFirstChildControl()
                 if first_child is None:
                     return False
-                return first_child.ControlTypeName==child_control_type
+                return first_child.LocalizedControlType==child_control_type
             
         def group_has_no_name(node:Control):
             try:
-                if node.LocalizedControlType=='group':
+                if node.ControlTypeName=='GroupControl':
                     if not node.Name.strip():
                         return True
                 return False
             except Exception:
                 return False
-        
-        def is_keyboard_focusable(node:Control):
+            
+        def is_element_interactive(node:Control):
             try:
-                return node.IsKeyboardFocusable
+                if node.ControlTypeName in INTERACTIVE_CONTROL_TYPE_NAMES:
+                    if is_element_visible(node) and is_element_enabled(node) and not is_element_image(node) and is_keyboard_focusable(node):
+                        return True
+                elif node.ControlTypeName=='GroupControl' and is_browser:
+                    if is_element_visible(node) and is_element_enabled(node) and (is_default_action(node) or is_keyboard_focusable(node)):
+                        return True
             except Exception:
                 return False
+            return False
         
         def dom_correction(node:Control):
             if element_has_child_element(node,'list item','link') or element_has_child_element(node,'item','link'):
@@ -146,7 +151,7 @@ class Tree:
                         return None
                     if child.ControlTypeName!='TextControl':
                         return None
-                    control_type='edit'
+                    control_type='Edit'
                     box = node.BoundingRectangle
                     x,y=box.xcenter(),box.ycenter()
                     center = Center(x=x,y=y)
@@ -154,9 +159,10 @@ class Tree:
                         name=child.Name.strip() or "''",
                         control_type=control_type,
                         shortcut=node.AcceleratorKey or "''",
-                        bounding_box=BoundingBox(left=box.left,top=box.top,right=box.right,bottom=box.bottom),
+                        bounding_box=BoundingBox(left=box.left,top=box.top,right=box.right,bottom=box.bottom,width=box.width(),height=box.height()),
                         center=center,
-                        app_name=app_name
+                        app_name=app_name,
+                        app_window=(window_width,window_height)
                     ))
             elif element_has_child_element(node,'link','heading'):
                 interactive_nodes.pop()
@@ -169,53 +175,57 @@ class Tree:
                     name=node.Name.strip() or "''",
                     control_type=control_type,
                     shortcut=node.AcceleratorKey or "''",
-                    bounding_box=BoundingBox(left=box.left,top=box.top,right=box.right,bottom=box.bottom),
+                    bounding_box=BoundingBox(left=box.left,top=box.top,right=box.right,bottom=box.bottom,width=box.width(),height=box.height()),
                     center=center,
-                    app_name=app_name
+                    app_name=app_name,
+                    app_window=(window_width,window_height)
                 ))
             
         def tree_traversal(node: Control):
             if is_element_interactive(node):
                 box = node.BoundingRectangle
-                bounding_box=BoundingBox(left=box.left,top=box.top,right=box.right,bottom=box.bottom)
-                x,y=random_point_within_bounding_box(node=node,scale_factor=0.5)
+                x,y=random_point_within_bounding_box(node=node,window_size=(window_width,window_height),scale_factor=0.8)
                 center = Center(x=x,y=y)
-                name=node.Name.strip() or "''"
                 interactive_nodes.append(TreeElementNode(
-                    name=name,
+                    name=node.Name.strip() or "''",
                     control_type=node.LocalizedControlType.title(),
                     shortcut=node.AcceleratorKey or "''",
-                    bounding_box=bounding_box,
+                    bounding_box=BoundingBox(left=box.left,top=box.top,right=box.right,bottom=box.bottom,width=box.width(),height=box.height()),
                     center=center,
-                    app_name=app_name
+                    app_name=app_name,
+                    app_window=(window_width,window_height)
                 ))
-                dom_correction(node)
+                if is_browser:
+                    dom_correction(node)
             elif is_element_text(node):
                 informative_nodes.append(TextElementNode(
                     name=node.Name.strip() or "''",
                     app_name=app_name
                 ))
             elif is_element_scrollable(node):
-                scroll_pattern=node.GetScrollPattern()
+                scroll_pattern:ScrollPattern=node.GetScrollPattern()
                 box = node.BoundingRectangle
-                bounding_box=BoundingBox(left=box.left,top=box.top,right=box.right,bottom=box.bottom)
+                # Get the center
                 x,y=box.xcenter(),box.ycenter()
                 center = Center(x=x,y=y)
                 scrollable_nodes.append(ScrollElementNode(
                     name=node.Name.strip() or node.LocalizedControlType.capitalize() or "''",
                     app_name=app_name,
-                    bounding_box=bounding_box,
+                    control_type=node.LocalizedControlType.title(),
+                    bounding_box=BoundingBox(left=box.left,top=box.top,right=box.right,bottom=box.bottom,width=box.width(),height=box.height()),
                     center=center,
                     horizontal_scrollable=scroll_pattern.HorizontallyScrollable,
                     vertical_scrollable=scroll_pattern.VerticallyScrollable
                 ))
-                
             # Recursively check all children
             for child in node.GetChildren():
                 tree_traversal(child)
         tree_traversal(node)
         return (interactive_nodes,informative_nodes,scrollable_nodes)
     
+    def get_random_color(self):
+        return "#{:06x}".format(random.randint(0, 0xFFFFFF))
+
     def annotated_screenshot(self, nodes: list[TreeElementNode],scale:float=0.7) -> Image.Image:
         screenshot = self.desktop.get_screenshot(scale=scale)
         sleep(0.25)
@@ -230,7 +240,7 @@ class Tree:
         font_size = 12
         try:
             font = ImageFont.truetype('arial.ttf', font_size)
-        except Exception:
+        except IOError:
             font = ImageFont.load_default()
 
         def get_random_color():
@@ -238,16 +248,24 @@ class Tree:
 
         def draw_annotation(label, node: TreeElementNode):
             box = node.bounding_box
+            window_width,window_height=node.app_window
             color = get_random_color()
 
-            # Scale and pad the bounding box
-            adjusted_box = (
-                int(box.left * scale) + padding,
-                int(box.top * scale) + padding,
-                int(box.right * scale) + padding,
-                int(box.bottom * scale) + padding
-            )
-
+            # Scale and pad the bounding box also clip the bounding box
+            if node.app_name not in EXCLUDED_APPS:
+                adjusted_box = (
+                    max(int(box.left * scale) + padding,0),
+                    max(int(box.top * scale) + padding,0),
+                    min(int(box.right * scale) + padding,window_width-1),
+                    min(int(box.bottom * scale) + padding,window_height-1)
+                )
+            else:
+                adjusted_box = (
+                    int(box.left * scale) + padding,
+                    int(box.top * scale) + padding,
+                    int(box.right * scale) + padding,
+                    int(box.bottom * scale) + padding
+                )
             # Draw bounding box
             draw.rectangle(adjusted_box, outline=color, width=2)
 
