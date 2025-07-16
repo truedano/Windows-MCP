@@ -75,7 +75,7 @@
 ```json
 {
   "theme": "Default",
-  "selectedAuthType": "oauth-personal",
+  ...
 //MCP Server Config
   "mcpServers": {
     "windows-mcp": {
