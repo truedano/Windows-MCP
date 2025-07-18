@@ -28,8 +28,9 @@ class Tree:
         visible_apps = {app.Name: app for app in all_apps if self.desktop.is_app_visible(app) and app.Name not in AVOIDED_APPS}
         apps={'Taskbar':visible_apps.pop('Taskbar',None),'Program Manager':visible_apps.pop('Program Manager',None)}
         if visible_apps:
-            foreground_app=list(visible_apps.values()).pop(0)
-            apps[foreground_app.Name.strip()]=foreground_app
+            foreground_app=next(iter(visible_apps.values()))
+            if foreground_app:
+                apps[foreground_app.Name.strip()]=foreground_app
         del visible_apps
         interactive_nodes,informative_nodes,scrollable_nodes=[],[],[]
         # Parallel traversal (using ThreadPoolExecutor) to get nodes from each app
