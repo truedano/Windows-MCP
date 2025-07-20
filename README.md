@@ -22,9 +22,17 @@
 
 **Windows MCP** is a lightweight, open-source project that enables seamless integration between AI agents and the Windows operating system. Acting as an MCP server bridges the gap between LLMs and the Windows operating system, allowing agents to perform tasks such as **file navigation, application control, UI interaction, QA testing,** and more.
 
-## Update
+## Updates
 
-Try out [Windows-Use](https://github.com/CursorTouch/Windows-Use), the agent build using `Windows-MCP`.
+- Try out [Windows-Use](https://github.com/CursorTouch/Windows-Use), the agent build using Windows-MCP.
+- Windows-MCP is now featured in Claude Desktop.
+
+### Supported Operating Systems
+
+- Windows 7
+- Windows 8, 8.1
+- Windows 10
+- Windows 11  
 
 ## 🎥 Demos
 
@@ -51,15 +59,6 @@ Try out [Windows-Use](https://github.com/CursorTouch/Windows-Use), the agent bui
 
 - **Real-Time Interaction**  
   Typical latency between actions (e.g., from one mouse click to the next) ranges from **1.5 to 2.3 secs**, and may slightly vary based on the number of active applications and system load, also the inferencing speed of the llm.
-
-### Supported Operating Systems
-
-- Windows 7
-- Windows 8, 8.1
-- Windows 10
-- Windows 11  
-
-## Installation
 
 ### Prerequisites
 
