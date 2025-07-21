@@ -99,18 +99,15 @@ def clipboard_tool(mode: Literal['copy', 'paste'], text: str = None)->str:
 @mcp.tool(name='Click-Tool',description='Click on UI elements at specific coordinates. Supports left/right/middle mouse buttons and single/double/triple clicks. Use coordinates from State-Tool output.')
 def click_tool(loc:tuple[int,int],button:Literal['left','right','middle']='left',clicks:int=1)->str:
     x,y=loc
-    cursor.move_to(loc)
+    pg.click(x=x, y=y, button=button, clicks=clicks)
     control=desktop.get_element_under_cursor()
-    pg.mouseDown()
-    pg.click(button=button,clicks=clicks)
-    pg.mouseUp()
     num_clicks={1:'Single',2:'Double',3:'Triple'}
     return f'{num_clicks.get(clicks)} {button} Clicked on {control.Name} Element with ControlType {control.ControlTypeName} at ({x},{y}).'
 
 @mcp.tool(name='Type-Tool',description='Type text into input fields, text areas, or focused elements. Set clear=True to replace existing text, False to append. Click on target element coordinates first.')
 def type_tool(loc:tuple[int,int],text:str,clear:bool=False):
     x,y=loc
-    cursor.click_on(loc)
+    pg.click(x=x, y=y)
     control=desktop.get_element_under_cursor()
     if clear=='True':
         pg.hotkey('ctrl','a')
@@ -129,7 +126,8 @@ def switch_tool(name: str) -> str:
 @mcp.tool(name='Scroll-Tool',description='Scroll at specific coordinates or current mouse position. Use wheel_times to control scroll amount (1 wheel = ~3-5 lines). Essential for navigating lists, web pages, and long content.')
 def scroll_tool(loc:tuple[int,int]=None,type:Literal['horizontal','vertical']='vertical',direction:Literal['up','down','left','right']='down',wheel_times:int=1)->str:
     if loc:
-        cursor.move_to(loc)
+        x,y=loc
+        pg.moveTo(x, y)
     match type:
         case 'vertical':
             match direction:
@@ -161,16 +159,16 @@ def scroll_tool(loc:tuple[int,int]=None,type:Literal['horizontal','vertical']='v
 
 @mcp.tool(name='Drag-Tool',description='Drag and drop operation from source coordinates to destination coordinates. Useful for moving files, resizing windows, or drag-and-drop interactions.')
 def drag_tool(from_loc:tuple[int,int],to_loc:tuple[int,int])->str:
-    control=desktop.get_element_under_cursor()
     x1,y1=from_loc
     x2,y2=to_loc
-    cursor.drag_and_drop(from_loc,to_loc)
-    return f'Dragged the {control.Name} element with ControlType {control.ControlTypeName} from ({x1},{y1}) to ({x2},{y2}).'
+    pg.drag(x1, y1, x2, y2, duration=0.5)
+    control=desktop.get_element_under_cursor()
+    return f'Dragged element from ({x1},{y1}) to ({x2},{y2}).'
 
 @mcp.tool(name='Move-Tool',description='Move mouse cursor to specific coordinates without clicking. Useful for hovering over elements or positioning cursor before other actions.')
 def move_tool(to_loc:tuple[int,int])->str:
     x,y=to_loc
-    cursor.move_to(to_loc)
+    pg.moveTo(x, y)
     return f'Moved the mouse pointer to ({x},{y}).'
 
 @mcp.tool(name='Shortcut-Tool',description='Execute keyboard shortcuts using key combinations. Pass keys as list (e.g., ["ctrl", "c"] for copy, ["alt", "tab"] for app switching, ["win", "r"] for Run dialog).')
