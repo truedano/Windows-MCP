@@ -8,6 +8,7 @@ class App:
     depth:int
     status:Literal['Maximized','Minimized','Normal']
     size:'Size'
+    process_id:int
     handle:int
 
     def to_string(self):

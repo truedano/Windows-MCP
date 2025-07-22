@@ -1,4 +1,4 @@
-from uiautomation import GetScreenSize, Control, GetRootControl, ControlType, GetFocusedControl, SetWindowTopmost
+from uiautomation import Control, GetRootControl, ControlType, GetFocusedControl, SetWindowTopmost, IsTopLevelWindow, IsZoomed, IsIconic, IsWindowVisible
 from src.desktop.config import EXCLUDED_APPS,BROWSER_NAMES
 from src.desktop.views import DesktopState,App,Size
 from fuzzywuzzy import process
@@ -30,29 +30,26 @@ class Desktop:
         self.desktop_state=DesktopState(apps=apps,active_app=active_app,screenshot=screenshot,tree_state=tree_state)
         return self.desktop_state
     
-    def get_taskbar(self)->Control:
-        root=GetRootControl()
-        taskbar=root.GetFirstChildControl()
-        return taskbar
     
     def get_app_status(self,control:Control)->str:
-        taskbar=self.get_taskbar()
-        screen_width, screen_height = GetScreenSize()
-        window = control.BoundingRectangle
-        taskbar_height=taskbar.BoundingRectangle.height()
-        window_width,window_height=window.width(),window.height()
-        if window.isempty():
-            return "Minimized"
-        if window_width >= screen_width and window_height >= screen_height - taskbar_height:
-            return "Maximized"
-        return "Normal"
+        if IsIconic(control.NativeWindowHandle):
+            return 'Minimized'
+        elif IsZoomed(control.NativeWindowHandle):
+            return 'Maximized'
+        elif IsWindowVisible(control.NativeWindowHandle):
+            return 'Normal'
+        else:
+            return 'Hidden'
     
+    def get_window_element_from_element(self,element:Control)->Control:
+        while element is not None:
+            if IsTopLevelWindow(element.NativeWindowHandle):
+                return element
+            element = element.GetParentControl()
+        return None
+
     def get_element_under_cursor(self)->Control:
         return GetFocusedControl()
-    
-    def is_app_browser(self,node:Control):
-        process=Process(node.ProcessId)
-        return process.name() in BROWSER_NAMES
     
     def get_apps_from_start_menu(self)->dict[str,str]:
         command='Get-StartApps | ConvertTo-Csv -NoTypeInformation'
@@ -129,7 +126,7 @@ class Desktop:
                 if element.ControlType in [ControlType.WindowControl, ControlType.PaneControl]:
                     status = self.get_app_status(element)
                     size=self.get_app_size(element)
-                    apps.append(App(name=element.Name, depth=depth, status=status,size=size,handle=element.NativeWindowHandle))
+                    apps.append(App(name=element.Name, depth=depth, status=status, size=size, process_id=element.ProcessId, handle=element.NativeWindowHandle))
         except Exception as ex:
             print(f"Error: {ex}")
             apps = []
