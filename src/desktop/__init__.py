@@ -41,7 +41,7 @@ class Desktop:
         else:
             return 'Hidden'
     
-    def get_window_element_from_element(self,element:Control)->Control:
+    def get_window_element_from_element(self,element:Control)->Control|None:
         while element is not None:
             if IsTopLevelWindow(element.NativeWindowHandle):
                 return element

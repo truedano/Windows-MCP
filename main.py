@@ -163,7 +163,7 @@ def drag_tool(from_loc:tuple[int,int],to_loc:tuple[int,int])->str:
     x2,y2=to_loc
     pg.drag(x1, y1, x2, y2, duration=0.5)
     control=desktop.get_element_under_cursor()
-    return f'Dragged element from ({x1},{y1}) to ({x2},{y2}).'
+    return f'Dragged {control.Name} element with ControlType {control.ControlTypeName} from ({x1},{y1}) to ({x2},{y2}).'
 
 @mcp.tool(name='Move-Tool',description='Move mouse cursor to specific coordinates without clicking. Useful for hovering over elements or positioning cursor before other actions.')
 def move_tool(to_loc:tuple[int,int])->str:
