@@ -99,8 +99,15 @@ def clipboard_tool(mode: Literal['copy', 'paste'], text: str = None)->str:
 @mcp.tool(name='Click-Tool',description='Click on UI elements at specific coordinates. Supports left/right/middle mouse buttons and single/double/triple clicks. Use coordinates from State-Tool output.')
 def click_tool(loc:tuple[int,int],button:Literal['left','right','middle']='left',clicks:int=1)->str:
     x,y=loc
-    pg.click(x=x, y=y, button=button, clicks=clicks)
+    pg.moveTo(x, y)
     control=desktop.get_element_under_cursor()
+    parent_control=control.GetParentControl()
+    if parent_control.Name=="Desktop":
+        pg.click(x=x,y=y,button=button,clicks=clicks)
+    else:
+        pg.mouseDown()
+        pg.click(button=button,clicks=clicks)
+        pg.mouseUp()
     num_clicks={1:'Single',2:'Double',3:'Triple'}
     return f'{num_clicks.get(clicks)} {button} Clicked on {control.Name} Element with ControlType {control.ControlTypeName} at ({x},{y}).'
 

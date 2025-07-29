@@ -121,7 +121,7 @@ class Desktop:
             elements = desktop.GetChildren()
             apps = []
             for depth, element in enumerate(elements):
-                if element.Name in EXCLUDED_APPS or self.is_overlay_app(element):
+                if element.ClassName in EXCLUDED_APPS or self.is_overlay_app(element):
                     continue
                 if element.ControlType in [ControlType.WindowControl, ControlType.PaneControl]:
                     status = self.get_app_status(element)
