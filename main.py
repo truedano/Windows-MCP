@@ -38,8 +38,7 @@ async def lifespan(app: FastMCP):
         watch_cursor.start()
         await asyncio.sleep(1) # Simulate startup latency
         yield
-        watch_cursor.stop()
-    except Exception:
+    finally:
         watch_cursor.stop()
 
 mcp=FastMCP(name='windows-mcp',instructions=instructions,lifespan=lifespan)

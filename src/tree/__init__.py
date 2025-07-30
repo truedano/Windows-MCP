@@ -3,7 +3,7 @@ from src.tree.config import INTERACTIVE_CONTROL_TYPE_NAMES,INFORMATIVE_CONTROL_T
 from uiautomation import GetRootControl,Control,ImageControl,ScrollPattern
 from src.tree.utils import random_point_within_bounding_box
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from src.desktop.config import AVOIDED_APPS
+from src.desktop.config import AVOIDED_APPS, EXCLUDED_APPS
 from PIL import Image, ImageFont, ImageDraw
 from typing import TYPE_CHECKING
 from time import sleep
@@ -26,10 +26,20 @@ class Tree:
     def get_appwise_nodes(self,node:Control) -> tuple[list[TreeElementNode],list[TextElementNode]]:
         all_apps=node.GetChildren()
         visible_apps = [app for app in all_apps if self.desktop.is_app_visible(app) and app.Name not in AVOIDED_APPS]
+        finalized_apps=[]
+        found_foreground_app=False
+        for app in visible_apps:
+            if not found_foreground_app:
+                if app.ClassName not in EXCLUDED_APPS:
+                    found_foreground_app=True    
+                finalized_apps.append(app)
+            else:
+                break
+
         interactive_nodes,informative_nodes,scrollable_nodes=[],[],[]
         # Parallel traversal (using ThreadPoolExecutor) to get nodes from each app
         with ThreadPoolExecutor() as executor:
-            future_to_node = {executor.submit(self.get_nodes, app,self.desktop.is_app_browser(app)): app for app in visible_apps}
+            future_to_node = {executor.submit(self.get_nodes, app,self.desktop.is_app_browser(app)): app for app in finalized_apps}
             for future in as_completed(future_to_node):
                 try:
                     result = future.result()
@@ -125,9 +135,9 @@ class Tree:
                 elif node.ControlTypeName=='GroupControl' and is_browser:
                     if is_element_visible and is_element_enabled(node) and (is_default_action(node) or is_keyboard_focusable(node)):
                         return True
-                elif node.ControlTypeName=='GroupControl' and not is_browser:
-                    if is_element_visible and is_element_enabled(node) and is_default_action(node):
-                        return True
+                # elif node.ControlTypeName=='GroupControl' and not is_browser:
+                #     if is_element_visible and is_element_enabled(node) and is_default_action(node):
+                #         return True
             except Exception:
                 return False
             return False
