@@ -24,22 +24,21 @@ class Tree:
         return TreeState(interactive_nodes=interactive_nodes,informative_nodes=informative_nodes,scrollable_nodes=scrollable_nodes)
     
     def get_appwise_nodes(self,node:Control) -> tuple[list[TreeElementNode],list[TextElementNode]]:
-        all_apps=node.GetChildren()
-        visible_apps = [app for app in all_apps if self.desktop.is_app_visible(app) and app.Name not in AVOIDED_APPS]
-        finalized_apps=[]
+        apps:list[Control]=[]
         found_foreground_app=False
-        for app in visible_apps:
-            if not found_foreground_app:
-                if app.ClassName not in EXCLUDED_APPS:
-                    found_foreground_app=True    
-                finalized_apps.append(app)
-            else:
-                break
+
+        for app in node.GetChildren():
+            if app.ClassName in EXCLUDED_APPS:
+                apps.append(app)
+            elif app.ClassName not in AVOIDED_APPS and self.desktop.is_app_visible(app):
+                if not found_foreground_app:
+                    apps.append(app)
+                    found_foreground_app=True
 
         interactive_nodes,informative_nodes,scrollable_nodes=[],[],[]
         # Parallel traversal (using ThreadPoolExecutor) to get nodes from each app
         with ThreadPoolExecutor() as executor:
-            future_to_node = {executor.submit(self.get_nodes, app,self.desktop.is_app_browser(app)): app for app in finalized_apps}
+            future_to_node = {executor.submit(self.get_nodes, app,self.desktop.is_app_browser(app)): app for app in apps}
             for future in as_completed(future_to_node):
                 try:
                     result = future.result()
