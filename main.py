@@ -31,6 +31,7 @@ desktop=Desktop()
 cursor=SystemCursor()
 watch_cursor=WatchCursor()
 ctypes.windll.user32.SetProcessDPIAware()
+default_browser=desktop.get_default_browser()
 language,_=getlocale()
 
 @asynccontextmanager
@@ -67,6 +68,8 @@ def state_tool(use_vision:bool=False)->str:
     apps=desktop_state.apps_to_string()
     active_app=desktop_state.active_app_to_string()
     return [dedent(f'''
+    Default Browser: {default_browser}
+                   
     Default Language: {language}            
 
     Focused App:

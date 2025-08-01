@@ -9,6 +9,7 @@ from io import BytesIO
 from PIL import Image
 import subprocess
 import pyautogui
+import winreg
 import csv
 import io
 
@@ -50,6 +51,24 @@ class Desktop:
 
     def get_element_under_cursor(self)->Control:
         return GetFocusedControl()
+    
+    def get_default_browser(self):
+        mapping = {
+            "ChromeHTML": "Google Chrome",
+            "FirefoxURL": "Mozilla Firefox",
+            "MSEdgeHTM": "Microsoft Edge",
+            "IE.HTTP": "Internet Explorer",
+            "OperaStable": "Opera",
+            "BraveHTML": "Brave",
+            "SafariHTML": "Safari"
+        }
+        try:
+            reg_path = r"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\http\UserChoice"
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_path) as key:
+                prog_id, _ = winreg.QueryValueEx(key, "ProgId")
+                return mapping.get(prog_id, "Microsoft Edge")
+        except Exception as e:
+            return f"Error: {e}"
     
     def get_apps_from_start_menu(self)->dict[str,str]:
         command='Get-StartApps | ConvertTo-Csv -NoTypeInformation'
