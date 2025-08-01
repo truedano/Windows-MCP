@@ -24,8 +24,8 @@
 
 ## Updates
 
-- Try out [Windows-Use](https://github.com/CursorTouch/Windows-Use), the agent build using Windows-MCP.
-- Windows-MCP is now featured in Claude Desktop.
+- Try out 🪟[Windows-Use](https://github.com/CursorTouch/Windows-Use)!!, an agent built using Windows-MCP.
+- Windows-MCP is now featured as Desktop Extension in `Claude Desktop`.
 
 ### Supported Operating Systems
 
