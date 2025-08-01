@@ -129,7 +129,7 @@ class Tree:
         def is_element_interactive(node:Control):
             try:
                 if node.ControlTypeName in INTERACTIVE_CONTROL_TYPE_NAMES:
-                    if is_element_visible and is_element_enabled(node) and not is_element_image(node) and is_keyboard_focusable(node):
+                    if is_element_visible and is_element_enabled(node) and not is_element_image(node) or is_keyboard_focusable(node):
                         return True
                 elif node.ControlTypeName=='GroupControl' and is_browser:
                     if is_element_visible and is_element_enabled(node) and (is_default_action(node) or is_keyboard_focusable(node)):
@@ -185,6 +185,10 @@ class Tree:
                 ))
             
         def tree_traversal(node: Control):
+            # Checks to skip the nodes that are not interactive
+            if node.IsOffscreen and node.ControlTypeName!= 'EditControl' and node.ClassName!="Popup":
+                return None
+            
             if is_element_interactive(node):
                 box = node.BoundingRectangle
                 x,y=random_point_within_bounding_box(node=node,scale_factor=0.8)
@@ -221,9 +225,8 @@ class Tree:
                 ))
             # Recursively check all children
             for child in node.GetChildren():
-                if child.IsOffscreen and child.ControlTypeName!= 'EditControl' and child.ClassName!="Popup":
-                    continue
                 tree_traversal(child)
+
         tree_traversal(node)
         return (interactive_nodes,informative_nodes,scrollable_nodes)
     
