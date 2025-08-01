@@ -62,13 +62,15 @@ class Desktop:
             "BraveHTML": "Brave",
             "SafariHTML": "Safari"
         }
-        try:
-            reg_path = r"Software\Microsoft\Windows\Shell\Associations\UrlAssociations\http\UserChoice"
-            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_path) as key:
-                prog_id, _ = winreg.QueryValueEx(key, "ProgId")
-                return mapping.get(prog_id, "Microsoft Edge")
-        except Exception as e:
-            return f"Error: {e}"
+        command= "(Get-ItemProperty HKCU:\\Software\\Microsoft\\Windows\\Shell\\Associations\\UrlAssociations\\http\\UserChoice).ProgId"
+        browser,_=self.execute_command(command)
+        return mapping.get(browser.strip())
+        
+    def get_default_language(self)->str:
+        command="Get-Culture | Select-Object Name,DisplayName | ConvertTo-Csv -NoTypeInformation"
+        response,_=self.execute_command(command)
+        reader=csv.DictReader(io.StringIO(response))
+        return "".join([row.get('Name') for row in reader])
     
     def get_apps_from_start_menu(self)->dict[str,str]:
         command='Get-StartApps | ConvertTo-Csv -NoTypeInformation'

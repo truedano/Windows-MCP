@@ -5,7 +5,6 @@ from humancursor import SystemCursor
 from platform import system, release
 from markdownify import markdownify
 from src.desktop import Desktop
-from locale import getlocale
 from textwrap import dedent
 from fastmcp import FastMCP
 from typing import Literal
@@ -31,8 +30,6 @@ desktop=Desktop()
 cursor=SystemCursor()
 watch_cursor=WatchCursor()
 ctypes.windll.user32.SetProcessDPIAware()
-default_browser=desktop.get_default_browser()
-language,_=getlocale()
 
 @asynccontextmanager
 async def lifespan(app: FastMCP):
@@ -59,18 +56,20 @@ def powershell_tool(command: str) -> str:
     response,status=desktop.execute_command(command)
     return f'Status Code: {status}\nResponse: {response}'
 
-@mcp.tool(name='State-Tool',description='Capture comprehensive desktop state including focused/opened applications, interactive UI elements (buttons, text fields, menus), informative content (text, labels, status), and scrollable areas. Optionally includes visual screenshot when use_vision=True. Essential for understanding current desktop context and available UI interactions.')
+@mcp.tool(name='State-Tool',description='Capture comprehensive desktop state including default browser and language, focused/opened applications, interactive UI elements (buttons, text fields, menus), informative content (text, labels, status), and scrollable areas. Optionally includes visual screenshot when use_vision=True. Essential for understanding current desktop context and available UI interactions.')
 def state_tool(use_vision:bool=False)->str:
     desktop_state=desktop.get_state(use_vision=use_vision)
     interactive_elements=desktop_state.tree_state.interactive_elements_to_string()
     informative_elements=desktop_state.tree_state.informative_elements_to_string()
     scrollable_elements=desktop_state.tree_state.scrollable_elements_to_string()
+    default_browser=desktop.get_default_browser()
+    default_language=desktop.get_default_language()
     apps=desktop_state.apps_to_string()
     active_app=desktop_state.active_app_to_string()
     return [dedent(f'''
     Default Browser: {default_browser}
                    
-    Default Language: {language}            
+    Default Language: {default_language}            
 
     Focused App:
     {active_app}
