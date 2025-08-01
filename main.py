@@ -5,6 +5,7 @@ from humancursor import SystemCursor
 from platform import system, release
 from markdownify import markdownify
 from src.desktop import Desktop
+from locale import getlocale
 from textwrap import dedent
 from fastmcp import FastMCP
 from typing import Literal
@@ -30,6 +31,7 @@ desktop=Desktop()
 cursor=SystemCursor()
 watch_cursor=WatchCursor()
 ctypes.windll.user32.SetProcessDPIAware()
+language,_=getlocale()
 
 @asynccontextmanager
 async def lifespan(app: FastMCP):
@@ -65,6 +67,8 @@ def state_tool(use_vision:bool=False)->str:
     apps=desktop_state.apps_to_string()
     active_app=desktop_state.active_app_to_string()
     return [dedent(f'''
+    Default Language: {language}            
+
     Focused App:
     {active_app}
 

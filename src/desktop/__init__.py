@@ -21,7 +21,7 @@ class Desktop:
         tree_state=tree.get_state()
         if use_vision:
             nodes=tree_state.interactive_nodes
-            annotated_screenshot=tree.annotated_screenshot(nodes=nodes,scale=0.5) if use_vision else None
+            annotated_screenshot=tree.annotated_screenshot(nodes=nodes,scale=0.5)
             screenshot=self.screenshot_in_bytes(screenshot=annotated_screenshot)
         else:
             screenshot=None
