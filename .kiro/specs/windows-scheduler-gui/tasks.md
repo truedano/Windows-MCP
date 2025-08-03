@@ -69,7 +69,7 @@
   - _需求: 3.3_
 
 - [ ] 3. 建立Windows控制整合層
-- [ ] 3.1 實作Windows控制器基礎功能
+- [X] 3.1 實作Windows控制器基礎功能
   - 編寫WindowsController類別，整合Windows-MCP功能
   - 實作應用程式偵測和基本控制方法
   - 建立錯誤處理和ExecutionResult回傳機制

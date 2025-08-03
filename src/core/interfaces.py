@@ -138,6 +138,46 @@ class IWindowsController(ABC):
         """Move application window."""
         pass
 
+    @abstractmethod
+    def minimize_window(self, app_name: str) -> "ExecutionResult":
+        """Minimize application window."""
+        pass
+
+    @abstractmethod
+    def maximize_window(self, app_name: str) -> "ExecutionResult":
+        """Maximize application window."""
+        pass
+
+    @abstractmethod
+    def focus_window(self, app_name: str) -> "ExecutionResult":
+        """Focus application window."""
+        pass
+
+    @abstractmethod
+    def click_element(self, app_name: str, x: int, y: int) -> "ExecutionResult":
+        """Click on element in application window."""
+        pass
+
+    @abstractmethod
+    def type_text(self, app_name: str, text: str, x: int, y: int) -> "ExecutionResult":
+        """Type text at specific location in application window."""
+        pass
+
+    @abstractmethod
+    def send_keys(self, keys: List[str]) -> "ExecutionResult":
+        """Send keyboard shortcuts."""
+        pass
+
+    @abstractmethod
+    def execute_powershell_command(self, command: str) -> "ExecutionResult":
+        """Execute custom PowerShell command."""
+        pass
+
+    @abstractmethod
+    def get_app_state(self, app_name: str) -> Optional[Dict[str, Any]]:
+        """Get current state of application."""
+        pass
+
 
 class ITaskManager(ABC):
     """Interface for task management operations."""
