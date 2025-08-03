@@ -1,4 +1,4 @@
-from uiautomation import Control, GetRootControl, ControlType, GetFocusedControl, SetWindowTopmost, IsTopLevelWindow, IsZoomed, IsIconic, IsWindowVisible
+from uiautomation import Control, GetRootControl, ControlType, GetFocusedControl, SetWindowTopmost, IsTopLevelWindow, IsZoomed, IsIconic, IsWindowVisible, ControlFromHandle
 from src.desktop.config import EXCLUDED_APPS,BROWSER_NAMES
 from src.desktop.views import DesktopState,App,Size
 from fuzzywuzzy import process
@@ -9,7 +9,6 @@ from io import BytesIO
 from PIL import Image
 import subprocess
 import pyautogui
-import winreg
 import csv
 import io
 
@@ -89,8 +88,28 @@ class Desktop:
     def is_app_browser(self,node:Control):
         process=Process(node.ProcessId)
         return process.name() in BROWSER_NAMES
+    
+    def resize_app(self,name:str,size:tuple[int,int]=None,loc:tuple[int,int]=None)->tuple[str,int]:
+        apps=self.get_apps()
+        matched_app:tuple[App,int]|None=process.extractOne(name,apps)
+        if matched_app is None:
+            return (f'Application {name.title()} not found.',1)
+        app,_=matched_app
+        app_control=ControlFromHandle(app.handle)
+        if loc is None:
+            x=app_control.BoundingRectangle.left
+            y=app_control.BoundingRectangle.top
+            loc=(x,y)
+        if size is None:
+            width=app_control.BoundingRectangle.width()
+            height=app_control.BoundingRectangle.height()
+            size=(width,height)
+        x,y=loc
+        width,height=size
+        app_control.MoveWindow(x,y,width,height)
+        return (f'Application {name.title()} resized to {width}x{height} at {x},{y}.',0)
         
-    def launch_app(self,name:str):
+    def launch_app(self,name:str)->tuple[str,int]:
         apps_map=self.get_apps_from_start_menu()
         matched_app=process.extractOne(name,apps_map.keys())
         if matched_app is None:

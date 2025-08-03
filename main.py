@@ -127,6 +127,11 @@ def type_tool(loc:tuple[int,int],text:str,clear:bool=False):
     pg.typewrite(text,interval=0.1)
     return f'Typed {text} on {control.Name} Element with ControlType {control.ControlTypeName} at ({x},{y}).'
 
+@mcp.tool(name='Resize-Tool',description='Resize a specific application window (e.g., "notepad", "calculator", "chrome", etc.) to specific size (WIDTHxHEIGHT) or move to specific location (X,Y).')
+def resize_tool(name:str,size:tuple[int,int]=None,loc:tuple[int,int]=None)->str:
+    response,_=desktop.resize_app(name,size,loc)
+    return response
+
 @mcp.tool(name='Switch-Tool',description='Switch to a specific application window (e.g., "notepad", "calculator", "chrome", etc.) and bring to foreground.')
 def switch_tool(name: str) -> str:
     _,status=desktop.switch_app(name)

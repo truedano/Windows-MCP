@@ -135,8 +135,8 @@ Claude can access the following tools to interact with Windows:
 - `Shortcut-Tool`: Press keyboard shortcuts (`Ctrl+c`, `Alt+Tab`, etc).
 - `Key-Tool`: Press a single key.
 - `Wait-Tool`: Pause for a defined duration.
-- `State-Tool`: Combined snapshot of active apps and interactive, textual and scrollable elements along with screenshot of the desktop.
-- `Screenshot-Tool`: Capture a screenshot of the desktop.
+- `State-Tool`: Combined snapshot of default language, browser, active apps and interactive, textual and scrollable elements along with screenshot of the desktop.
+- `Resize-Tool`: Used to change the window size or location of an app.
 - `Launch-Tool`: To launch an application from the start menu.
 - `Shell-Tool`: To execute PowerShell commands.
 - `Scrape-Tool`: To scrape the entire webpage for information.
