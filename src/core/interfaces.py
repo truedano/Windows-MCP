@@ -183,12 +183,16 @@ class ITaskManager(ABC):
     """Interface for task management operations."""
 
     @abstractmethod
-    def create_task(self, task_config: Dict[str, Any]) -> str:
+    def create_task(self, name: str, target_app: str, action_type: "ActionType", 
+                   action_params: Dict[str, Any], schedule: "Schedule") -> str:
         """Create a new task and return its ID."""
         pass
 
     @abstractmethod
-    def update_task(self, task_id: str, task_config: Dict[str, Any]) -> bool:
+    def update_task(self, task_id: str, name: Optional[str] = None, 
+                   target_app: Optional[str] = None, action_type: Optional["ActionType"] = None,
+                   action_params: Optional[Dict[str, Any]] = None, 
+                   schedule: Optional["Schedule"] = None) -> bool:
         """Update an existing task."""
         pass
 
@@ -205,6 +209,31 @@ class ITaskManager(ABC):
     @abstractmethod
     def get_all_tasks(self) -> List["Task"]:
         """Get all tasks."""
+        pass
+
+    @abstractmethod
+    def get_tasks_by_status(self, status: "TaskStatus") -> List["Task"]:
+        """Get tasks filtered by status."""
+        pass
+
+    @abstractmethod
+    def get_due_tasks(self, current_time: Optional[datetime] = None) -> List["Task"]:
+        """Get tasks that are due for execution."""
+        pass
+
+    @abstractmethod
+    def validate_task(self, task: "Task") -> bool:
+        """Validate a task configuration."""
+        pass
+
+    @abstractmethod
+    def update_task_status(self, task_id: str, status: "TaskStatus") -> bool:
+        """Update the status of a task."""
+        pass
+
+    @abstractmethod
+    def mark_task_executed(self, task_id: str, execution_time: Optional[datetime] = None) -> bool:
+        """Mark a task as executed and update its next execution time."""
         pass
 
 
