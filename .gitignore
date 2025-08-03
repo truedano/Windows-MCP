@@ -170,3 +170,22 @@ user_data
 
 node_modules
 notebook.ipynb
+
+# Windows Scheduler GUI specific
+.config/
+data/
+logs/
+backups/
+*.json
+!pyproject.toml
+!manifest.json
+
+# IDE and editor files
+.idea/
+*.swp
+*.swo
+*~
+
+# OS specific files
+Thumbs.db
+.DS_Store
