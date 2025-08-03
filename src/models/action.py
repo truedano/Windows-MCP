@@ -221,12 +221,37 @@ def _validate_type_text_params(params: Dict[str, Any]) -> bool:
 
 def _validate_send_keys_params(params: Dict[str, Any]) -> bool:
     """Validate send keys parameters."""
-    return (
-        'keys' in params and
-        isinstance(params['keys'], list) and
-        len(params['keys']) > 0 and
-        all(isinstance(key, str) and len(key.strip()) > 0 for key in params['keys'])
-    )
+    if not ('keys' in params and isinstance(params['keys'], list) and len(params['keys']) > 0):
+        return False
+    
+    # Valid key names for Windows
+    valid_keys = {
+        'ctrl', 'alt', 'shift', 'win', 'tab', 'enter', 'space', 'backspace',
+        'delete', 'home', 'end', 'pageup', 'pagedown', 'insert', 'escape',
+        'f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'f10', 'f11', 'f12',
+        'up', 'down', 'left', 'right', 'numlock', 'capslock', 'scrolllock',
+        'printscreen', 'pause', 'menu'
+    }
+    
+    # Also allow single characters and numbers
+    for key in params['keys']:
+        if not isinstance(key, str) or len(key.strip()) == 0:
+            return False
+        
+        key_lower = key.lower().strip()
+        
+        # Check if it's a valid special key
+        if key_lower in valid_keys:
+            continue
+        
+        # Check if it's a single character (a-z, 0-9)
+        if len(key_lower) == 1 and (key_lower.isalnum() or key_lower in '`-=[]\\;\',./'):
+            continue
+        
+        # Invalid key
+        return False
+    
+    return True
 
 
 def _validate_custom_command_params(params: Dict[str, Any]) -> bool:
