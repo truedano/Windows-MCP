@@ -68,7 +68,7 @@
   - 建立動作參數驗證的單元測試
   - _需求: 3.3_
 
-- [ ] 3. 建立Windows控制整合層
+- [X] 3. 建立Windows控制整合層
 - [X] 3.1 實作Windows控制器基礎功能
   - 編寫WindowsController類別，整合Windows-MCP功能
   - 實作應用程式偵測和基本控制方法
