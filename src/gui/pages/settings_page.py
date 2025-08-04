@@ -1,10 +1,10 @@
 """
-Settings page implementation.
+Modern Settings page implementation with widget components.
 """
 
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from src.gui.page_manager import BasePage
 from src.core.config_manager import get_config_manager, ConfigObserver
@@ -12,15 +12,20 @@ from src.models.config import AppConfig
 
 
 class SettingsPage(BasePage, ConfigObserver):
-    """System settings page with configuration management."""
+    """Modern settings page with specialized widget components."""
     
     def __init__(self, parent: tk.Widget):
         """Initialize settings page."""
         super().__init__(parent, "Settings", "系統設定")
         self.config_manager = get_config_manager()
         self.config_manager.add_observer(self)
-        self.widgets: Dict[str, tk.Widget] = {}
         self._updating = False
+        
+        # Widget references
+        self.schedule_frequency_widget: Optional[Any] = None
+        self.notification_options_widget: Optional[Any] = None
+        self.log_recording_widget: Optional[Any] = None
+        self.additional_widgets: Dict[str, tk.Widget] = {}
     
     def initialize_content(self) -> None:
         """Initialize page content (called once)."""
@@ -30,7 +35,7 @@ class SettingsPage(BasePage, ConfigObserver):
         # Page title
         title_label = ttk.Label(
             self.frame,
-            text="System Settings",
+            text="Settings",
             font=("Segoe UI", 18, "bold")
         )
         title_label.pack(anchor=tk.W, pady=(0, 10))
@@ -41,20 +46,32 @@ class SettingsPage(BasePage, ConfigObserver):
             font=("Segoe UI", 10),
             foreground="#666666"
         )
-        subtitle_label.pack(anchor=tk.W, pady=(0, 20))
+        subtitle_label.pack(anchor=tk.W, pady=(5, 20))
         
-        # Create notebook for different setting categories
-        notebook = ttk.Notebook(self.frame)
-        notebook.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+        # Create main content frame with scrollable area
+        main_frame = ttk.Frame(self.frame)
+        main_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 20))
         
-        # General settings tab
-        self._create_general_tab(notebook)
+        # Import the new widgets
+        from ..widgets import ScheduleFrequencyWidget, NotificationOptionsWidget, LogRecordingOptionsWidget
         
-        # UI settings tab
-        self._create_ui_tab(notebook)
+        # Schedule Frequency Widget
+        self.schedule_frequency_widget = ScheduleFrequencyWidget(main_frame)
+        self.schedule_frequency_widget.pack(fill=tk.X, pady=(0, 15))
+        self.schedule_frequency_widget.set_change_callback(self._on_frequency_changed)
         
-        # Advanced settings tab
-        self._create_advanced_tab(notebook)
+        # Notification Options Widget
+        self.notification_options_widget = NotificationOptionsWidget(main_frame)
+        self.notification_options_widget.pack(fill=tk.X, pady=(0, 15))
+        self.notification_options_widget.set_change_callback(self._on_notification_changed)
+        
+        # Log Recording Options Widget
+        self.log_recording_widget = LogRecordingOptionsWidget(main_frame)
+        self.log_recording_widget.pack(fill=tk.X, pady=(0, 15))
+        self.log_recording_widget.set_change_callback(self._on_logging_changed)
+        
+        # Additional settings section
+        self._create_additional_settings(main_frame)
         
         # Action buttons
         self._create_action_buttons()
@@ -62,181 +79,129 @@ class SettingsPage(BasePage, ConfigObserver):
         # Load current settings
         self._load_settings()
     
-    def _create_general_tab(self, notebook: ttk.Notebook) -> None:
-        """Create general settings tab."""
-        frame = ttk.Frame(notebook)
-        notebook.add(frame, text="一般設定")
-        
-        # Schedule check frequency
-        freq_frame = ttk.LabelFrame(frame, text="排程檢查頻率", padding=10)
-        freq_frame.pack(fill=tk.X, padx=10, pady=5)
-        
-        ttk.Label(freq_frame, text="檢查間隔 (秒):").pack(anchor=tk.W)
-        freq_var = tk.IntVar()
-        freq_spinbox = ttk.Spinbox(
-            freq_frame, from_=1, to=60, textvariable=freq_var, width=10
-        )
-        freq_spinbox.pack(anchor=tk.W, pady=(5, 0))
-        self.widgets["schedule_check_frequency"] = freq_var
-        
-        # Notifications
-        notif_frame = ttk.LabelFrame(frame, text="通知設定", padding=10)
-        notif_frame.pack(fill=tk.X, padx=10, pady=5)
-        
-        notif_var = tk.BooleanVar()
-        notif_check = ttk.Checkbutton(
-            notif_frame, text="啟用通知", variable=notif_var
-        )
-        notif_check.pack(anchor=tk.W)
-        self.widgets["notifications_enabled"] = notif_var
-        
-        # Logging
-        log_frame = ttk.LabelFrame(frame, text="日誌設定", padding=10)
-        log_frame.pack(fill=tk.X, padx=10, pady=5)
-        
-        log_var = tk.BooleanVar()
-        log_check = ttk.Checkbutton(
-            log_frame, text="啟用日誌記錄", variable=log_var
-        )
-        log_check.pack(anchor=tk.W)
-        self.widgets["log_recording_enabled"] = log_var
-        
-        ttk.Label(log_frame, text="日誌保留天數:").pack(anchor=tk.W, pady=(10, 0))
-        retention_var = tk.IntVar()
-        retention_spinbox = ttk.Spinbox(
-            log_frame, from_=1, to=365, textvariable=retention_var, width=10
-        )
-        retention_spinbox.pack(anchor=tk.W, pady=(5, 0))
-        self.widgets["log_retention_days"] = retention_var
-    
-    def _create_ui_tab(self, notebook: ttk.Notebook) -> None:
-        """Create UI settings tab."""
-        frame = ttk.Frame(notebook)
-        notebook.add(frame, text="介面設定")
-        
-        # Theme settings
-        theme_frame = ttk.LabelFrame(frame, text="介面主題", padding=10)
-        theme_frame.pack(fill=tk.X, padx=10, pady=5)
-        
-        ttk.Label(theme_frame, text="主題:").pack(anchor=tk.W)
-        theme_var = tk.StringVar()
-        theme_combo = ttk.Combobox(
-            theme_frame, textvariable=theme_var, 
-            values=["default", "dark", "light"], state="readonly", width=15
-        )
-        theme_combo.pack(anchor=tk.W, pady=(5, 0))
-        self.widgets["ui_theme"] = theme_var
-        
-        # Language settings
-        lang_frame = ttk.LabelFrame(frame, text="語言設定", padding=10)
-        lang_frame.pack(fill=tk.X, padx=10, pady=5)
-        
-        ttk.Label(lang_frame, text="語言:").pack(anchor=tk.W)
-        lang_var = tk.StringVar()
-        lang_combo = ttk.Combobox(
-            lang_frame, textvariable=lang_var,
-            values=["zh-TW", "zh-CN", "en-US"], state="readonly", width=15
-        )
-        lang_combo.pack(anchor=tk.W, pady=(5, 0))
-        self.widgets["language"] = lang_var
-        
-        # Window settings
-        window_frame = ttk.LabelFrame(frame, text="視窗設定", padding=10)
-        window_frame.pack(fill=tk.X, padx=10, pady=5)
-        
-        ttk.Label(window_frame, text="預設寬度:").pack(anchor=tk.W)
-        width_var = tk.IntVar()
-        width_spinbox = ttk.Spinbox(
-            window_frame, from_=800, to=3840, textvariable=width_var, width=10
-        )
-        width_spinbox.pack(anchor=tk.W, pady=(5, 0))
-        self.widgets["window_width"] = width_var
-        
-        ttk.Label(window_frame, text="預設高度:").pack(anchor=tk.W, pady=(10, 0))
-        height_var = tk.IntVar()
-        height_spinbox = ttk.Spinbox(
-            window_frame, from_=600, to=2160, textvariable=height_var, width=10
-        )
-        height_spinbox.pack(anchor=tk.W, pady=(5, 0))
-        self.widgets["window_height"] = height_var
-    
-    def _create_advanced_tab(self, notebook: ttk.Notebook) -> None:
-        """Create advanced settings tab."""
-        frame = ttk.Frame(notebook)
-        notebook.add(frame, text="進階設定")
+    def _create_additional_settings(self, parent: ttk.Frame):
+        """Create additional settings section."""
+        # Advanced settings frame
+        advanced_frame = ttk.LabelFrame(parent, text="進階設定", padding=15)
+        advanced_frame.pack(fill=tk.X, pady=(0, 15))
         
         # Retry settings
-        retry_frame = ttk.LabelFrame(frame, text="重試設定", padding=10)
-        retry_frame.pack(fill=tk.X, padx=10, pady=5)
+        retry_frame = ttk.Frame(advanced_frame)
+        retry_frame.pack(fill=tk.X, pady=(0, 10))
         
-        ttk.Label(retry_frame, text="最大重試次數:").pack(anchor=tk.W)
-        retry_var = tk.IntVar()
-        retry_spinbox = ttk.Spinbox(
-            retry_frame, from_=0, to=10, textvariable=retry_var, width=10
+        ttk.Label(retry_frame, text="最大重試次數:", font=("TkDefaultFont", 10, "bold")).pack(anchor=tk.W, pady=(0, 5))
+        
+        retry_input_frame = ttk.Frame(retry_frame)
+        retry_input_frame.pack(fill=tk.X, padx=(20, 0))
+        
+        self.additional_widgets["max_retry_attempts"] = ttk.Spinbox(
+            retry_input_frame,
+            from_=0,
+            to=10,
+            width=5,
+            value=3
         )
-        retry_spinbox.pack(anchor=tk.W, pady=(5, 0))
-        self.widgets["max_retry_attempts"] = retry_var
+        self.additional_widgets["max_retry_attempts"].pack(side=tk.LEFT)
+        
+        ttk.Label(retry_input_frame, text="次").pack(side=tk.LEFT, padx=(5, 0))
         
         # Startup settings
-        startup_frame = ttk.LabelFrame(frame, text="啟動設定", padding=10)
-        startup_frame.pack(fill=tk.X, padx=10, pady=5)
+        startup_frame = ttk.Frame(advanced_frame)
+        startup_frame.pack(fill=tk.X)
         
-        auto_start_var = tk.BooleanVar()
-        auto_start_check = ttk.Checkbutton(
-            startup_frame, text="自動啟動排程器", variable=auto_start_var
-        )
-        auto_start_check.pack(anchor=tk.W)
-        self.widgets["auto_start_scheduler"] = auto_start_var
+        ttk.Label(startup_frame, text="啟動選項:", font=("TkDefaultFont", 10, "bold")).pack(anchor=tk.W, pady=(0, 5))
         
-        minimize_var = tk.BooleanVar()
-        minimize_check = ttk.Checkbutton(
-            startup_frame, text="最小化到系統匣", variable=minimize_var
-        )
-        minimize_check.pack(anchor=tk.W)
-        self.widgets["minimize_to_tray"] = minimize_var
+        startup_options_frame = ttk.Frame(startup_frame)
+        startup_options_frame.pack(fill=tk.X, padx=(20, 0))
         
-        splash_var = tk.BooleanVar()
-        splash_check = ttk.Checkbutton(
-            startup_frame, text="顯示啟動畫面", variable=splash_var
-        )
-        splash_check.pack(anchor=tk.W)
-        self.widgets["show_splash_screen"] = splash_var
+        self.additional_widgets["auto_start_scheduler"] = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            startup_options_frame,
+            text="自動啟動排程器",
+            variable=self.additional_widgets["auto_start_scheduler"]
+        ).pack(anchor=tk.W)
         
-        debug_var = tk.BooleanVar()
-        debug_check = ttk.Checkbutton(
-            startup_frame, text="除錯模式", variable=debug_var
-        )
-        debug_check.pack(anchor=tk.W)
-        self.widgets["debug_mode"] = debug_var
+        self.additional_widgets["minimize_to_tray"] = tk.BooleanVar(value=True)
+        ttk.Checkbutton(
+            startup_options_frame,
+            text="最小化到系統匣",
+            variable=self.additional_widgets["minimize_to_tray"]
+        ).pack(anchor=tk.W)
+        
+        self.additional_widgets["debug_mode"] = tk.BooleanVar(value=False)
+        ttk.Checkbutton(
+            startup_options_frame,
+            text="除錯模式",
+            variable=self.additional_widgets["debug_mode"]
+        ).pack(anchor=tk.W)
     
-    def _create_action_buttons(self) -> None:
+    def _create_action_buttons(self):
         """Create action buttons."""
         button_frame = ttk.Frame(self.frame)
-        button_frame.pack(fill=tk.X, padx=10, pady=10)
+        button_frame.pack(fill=tk.X, pady=(10, 0))
         
-        # Save button
-        save_btn = ttk.Button(
-            button_frame, text="儲存設定", command=self._save_settings
+        # Save button (primary action)
+        save_button = ttk.Button(
+            button_frame, 
+            text="儲存設定", 
+            command=self._save_settings
         )
-        save_btn.pack(side=tk.LEFT, padx=(0, 5))
+        save_button.pack(side=tk.RIGHT, padx=(5, 0))
         
         # Reset button
-        reset_btn = ttk.Button(
-            button_frame, text="重設為預設值", command=self._reset_settings
-        )
-        reset_btn.pack(side=tk.LEFT, padx=5)
+        ttk.Button(
+            button_frame, 
+            text="重設為預設值", 
+            command=self._reset_settings
+        ).pack(side=tk.RIGHT, padx=(5, 0))
         
         # Export button
-        export_btn = ttk.Button(
-            button_frame, text="匯出設定", command=self._export_settings
-        )
-        export_btn.pack(side=tk.LEFT, padx=5)
+        ttk.Button(
+            button_frame, 
+            text="匯出設定", 
+            command=self._export_settings
+        ).pack(side=tk.RIGHT, padx=(5, 0))
         
         # Import button
-        import_btn = ttk.Button(
-            button_frame, text="匯入設定", command=self._import_settings
-        )
-        import_btn.pack(side=tk.LEFT, padx=5)
+        ttk.Button(
+            button_frame, 
+            text="匯入設定", 
+            command=self._import_settings
+        ).pack(side=tk.RIGHT)
+    
+    def _on_frequency_changed(self, frequency: int):
+        """Handle frequency setting changes."""
+        if not self._updating:
+            try:
+                self.config_manager.set_setting("schedule_check_frequency", frequency)
+            except Exception as e:
+                messagebox.showerror("錯誤", f"無法更新排程頻率: {e}")
+    
+    def _on_notification_changed(self, settings: dict):
+        """Handle notification setting changes."""
+        if not self._updating:
+            try:
+                self.config_manager.set_setting("notifications_enabled", settings.get("notifications_enabled", True))
+                # Store additional notification settings if needed
+                for key, value in settings.items():
+                    if key.startswith("notification_"):
+                        self.config_manager.set_setting(key, value)
+            except Exception as e:
+                messagebox.showerror("錯誤", f"無法更新通知設定: {e}")
+    
+    def _on_logging_changed(self, settings: dict):
+        """Handle logging setting changes."""
+        if not self._updating:
+            try:
+                self.config_manager.set_setting("log_recording_enabled", settings.get("logging_enabled", True))
+                if "retention_days" in settings:
+                    self.config_manager.set_setting("log_retention_days", settings["retention_days"])
+                # Store additional logging settings
+                for key, value in settings.items():
+                    if key.startswith("log_"):
+                        self.config_manager.set_setting(key, value)
+            except Exception as e:
+                messagebox.showerror("錯誤", f"無法更新日誌設定: {e}")
     
     def _load_settings(self) -> None:
         """Load current settings into widgets."""
@@ -244,28 +209,99 @@ class SettingsPage(BasePage, ConfigObserver):
         try:
             config = self.config_manager.get_config()
             
-            for key, widget in self.widgets.items():
-                value = getattr(config, key, None)
-                if value is not None:
-                    widget.set(value)
+            # Load schedule frequency
+            if self.schedule_frequency_widget:
+                self.schedule_frequency_widget.set_frequency(config.schedule_check_frequency)
+            
+            # Load notification settings
+            if self.notification_options_widget:
+                notification_settings = {
+                    "notifications_enabled": config.notifications_enabled,
+                    "notification_level": getattr(config, "notification_level", "all"),
+                    "sound_enabled": getattr(config, "notification_sound_enabled", True)
+                }
+                self.notification_options_widget.set_settings(notification_settings)
+            
+            # Load logging settings
+            if self.log_recording_widget:
+                logging_settings = {
+                    "logging_enabled": config.log_recording_enabled,
+                    "log_level": getattr(config, "log_level", "info"),
+                    "retention_days": config.log_retention_days,
+                    "max_file_size_mb": getattr(config, "max_log_file_size_mb", 10),
+                    "auto_cleanup": getattr(config, "auto_cleanup_logs", True),
+                    "log_path": getattr(config, "log_path", "logs/")
+                }
+                self.log_recording_widget.set_settings(logging_settings)
+            
+            # Load additional settings
+            if "max_retry_attempts" in self.additional_widgets:
+                self.additional_widgets["max_retry_attempts"].set(config.max_retry_attempts)
+            
+            if "auto_start_scheduler" in self.additional_widgets:
+                self.additional_widgets["auto_start_scheduler"].set(config.auto_start_scheduler)
+            
+            if "minimize_to_tray" in self.additional_widgets:
+                self.additional_widgets["minimize_to_tray"].set(config.minimize_to_tray)
+            
+            if "debug_mode" in self.additional_widgets:
+                self.additional_widgets["debug_mode"].set(config.debug_mode)
+                
+        except Exception as e:
+            messagebox.showerror("錯誤", f"載入設定時發生錯誤: {e}")
         finally:
             self._updating = False
     
     def _save_settings(self) -> None:
-        """Save current settings."""
+        """Save all settings."""
         try:
-            # Collect values from widgets
+            # Validate all widgets
+            if not self._validate_all_settings():
+                messagebox.showerror("錯誤", "設定驗證失敗，請檢查輸入值")
+                return
+            
+            # Collect settings from all widgets
             updates = {}
-            for key, widget in self.widgets.items():
-                updates[key] = widget.get()
+            
+            # Schedule frequency
+            if self.schedule_frequency_widget:
+                updates["schedule_check_frequency"] = self.schedule_frequency_widget.get_frequency()
+            
+            # Notification settings
+            if self.notification_options_widget:
+                notif_settings = self.notification_options_widget.get_settings()
+                updates["notifications_enabled"] = notif_settings.get("notifications_enabled", True)
+                # Store additional notification settings
+                for key, value in notif_settings.items():
+                    if key != "notifications_enabled":
+                        updates[f"notification_{key}"] = value
+            
+            # Logging settings
+            if self.log_recording_widget:
+                log_settings = self.log_recording_widget.get_settings()
+                updates["log_recording_enabled"] = log_settings.get("logging_enabled", True)
+                updates["log_retention_days"] = log_settings.get("retention_days", 30)
+                # Store additional logging settings
+                for key, value in log_settings.items():
+                    if key not in ["logging_enabled", "retention_days"]:
+                        updates[f"log_{key}"] = value
+            
+            # Additional settings
+            if "max_retry_attempts" in self.additional_widgets:
+                updates["max_retry_attempts"] = int(self.additional_widgets["max_retry_attempts"].get())
+            
+            if "auto_start_scheduler" in self.additional_widgets:
+                updates["auto_start_scheduler"] = self.additional_widgets["auto_start_scheduler"].get()
+            
+            if "minimize_to_tray" in self.additional_widgets:
+                updates["minimize_to_tray"] = self.additional_widgets["minimize_to_tray"].get()
+            
+            if "debug_mode" in self.additional_widgets:
+                updates["debug_mode"] = self.additional_widgets["debug_mode"].get()
             
             # Apply updates
             for key, value in updates.items():
-                success = self.config_manager.set_setting(key, value, save_immediately=False)
-                if not success:
-                    messagebox.showerror("錯誤", f"無法設定 {key}: 值無效")
-                    self._load_settings()  # Reload original values
-                    return
+                self.config_manager.set_setting(key, value)
             
             # Save configuration
             if self.config_manager.save_config():
@@ -277,7 +313,7 @@ class SettingsPage(BasePage, ConfigObserver):
             messagebox.showerror("錯誤", f"儲存設定時發生錯誤: {e}")
     
     def _reset_settings(self) -> None:
-        """Reset settings to defaults."""
+        """Reset all settings to defaults."""
         if messagebox.askyesno("確認", "確定要重設所有設定為預設值嗎？"):
             try:
                 if self.config_manager.reset_to_defaults():
@@ -325,6 +361,35 @@ class SettingsPage(BasePage, ConfigObserver):
         except Exception as e:
             messagebox.showerror("錯誤", f"匯入設定時發生錯誤: {e}")
     
+    def _validate_all_settings(self) -> bool:
+        """Validate all settings."""
+        try:
+            # Validate schedule frequency
+            if self.schedule_frequency_widget and not self.schedule_frequency_widget.validate():
+                return False
+            
+            # Validate notification settings
+            if self.notification_options_widget and not self.notification_options_widget.validate():
+                return False
+            
+            # Validate logging settings
+            if self.log_recording_widget and not self.log_recording_widget.validate():
+                return False
+            
+            # Validate additional settings
+            if "max_retry_attempts" in self.additional_widgets:
+                try:
+                    retry_attempts = int(self.additional_widgets["max_retry_attempts"].get())
+                    if not (0 <= retry_attempts <= 10):
+                        return False
+                except ValueError:
+                    return False
+            
+            return True
+            
+        except Exception:
+            return False
+    
     def refresh_content(self) -> None:
         """Refresh page content (called on each activation)."""
         if not self._updating:
@@ -332,5 +397,12 @@ class SettingsPage(BasePage, ConfigObserver):
     
     def on_config_changed(self, setting_key: str, old_value, new_value) -> None:
         """Handle configuration changes from other sources."""
-        if not self._updating and setting_key in self.widgets:
-            self.widgets[setting_key].set(new_value)
+        if not self._updating:
+            # Reload settings to reflect external changes
+            self._load_settings()
+    
+    def destroy(self):
+        """Clean up resources when page is destroyed."""
+        if hasattr(self, 'config_manager'):
+            self.config_manager.remove_observer(self)
+        super().destroy()

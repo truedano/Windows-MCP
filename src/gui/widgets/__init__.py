@@ -13,6 +13,9 @@ from .app_list_widget import AppListWidget
 from .app_detail_widget import AppDetailWidget
 from .app_monitor_panel import AppMonitorPanel
 from .status_monitor_widget import StatusMonitorWidget
+from .schedule_frequency_widget import ScheduleFrequencyWidget
+from .notification_options_widget import NotificationOptionsWidget
+from .log_recording_options_widget import LogRecordingOptionsWidget
 
 __all__ = [
     'TaskListWidget', 
@@ -25,5 +28,8 @@ __all__ = [
     'AppListWidget',
     'AppDetailWidget',
     'AppMonitorPanel',
-    'StatusMonitorWidget'
+    'StatusMonitorWidget',
+    'ScheduleFrequencyWidget',
+    'NotificationOptionsWidget',
+    'LogRecordingOptionsWidget'
 ]

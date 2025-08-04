@@ -298,7 +298,7 @@
   - _需求: 5.1, 5.2, 5.3, 5.4_
 
 - [ ] 12. 實作設定頁面
-- [ ] 12.1 建立設定頁面
+- [x] 12.1 建立設定頁面
   - 實作SettingsPage類別，採用現代化Web風格設計
   - 建立ScheduleFrequencyWidget管理排程檢查頻率設定
   - 實作NotificationOptionsWidget控制通知選項
