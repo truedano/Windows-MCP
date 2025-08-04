@@ -15,6 +15,7 @@ from src.models.execution import ExecutionResult, ExecutionLog
 from src.core.interfaces import ISchedulerEngine, ITaskManager, IWindowsController
 from src.core.task_manager import get_task_manager
 from src.core.config_manager import get_config_manager
+from src.core.log_manager import get_log_manager
 from src.storage.log_storage import get_log_storage
 from src.utils.constants import DEFAULT_SCHEDULE_CHECK_FREQUENCY
 
@@ -58,6 +59,7 @@ class SchedulerEngine(ISchedulerEngine):
         self.task_manager = task_manager or get_task_manager()
         self.windows_controller = windows_controller
         self.config_manager = get_config_manager()
+        self.log_manager = get_log_manager()
         self.log_storage = get_log_storage()
         
         # Scheduler state
@@ -615,14 +617,8 @@ class SchedulerEngine(ISchedulerEngine):
     def _log_execution(self, task: Task, result: ExecutionResult, duration: timedelta) -> None:
         """Log task execution."""
         try:
-            execution_log = ExecutionLog.create_log(
-                task.name,
-                result,
-                duration,
-                task.retry_count
-            )
-            
-            self.log_storage.save_log(execution_log)
+            # Use log manager for centralized logging
+            self.log_manager.log_execution(task, result, duration)
             
         except Exception as e:
             self.logger.error(f"Error logging execution: {e}")
