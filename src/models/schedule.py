@@ -74,12 +74,12 @@ class ConditionalTrigger:
     def _check_window_exists(self, context: Dict[str, Any]) -> bool:
         """Check if a window with the specified name exists."""
         running_apps = context.get('running_apps', [])
-        return self.condition_value.lower() in [app.lower() for app in running_apps]
+        return any(self.condition_value.lower() in app.lower() for app in running_apps)
     
     def _check_process_running(self, context: Dict[str, Any]) -> bool:
         """Check if a process with the specified name is running."""
         running_processes = context.get('running_processes', [])
-        return self.condition_value.lower() in [proc.lower() for proc in running_processes]
+        return any(self.condition_value.lower() in proc.lower() for proc in running_processes)
     
     def _check_time_range(self, context: Dict[str, Any]) -> bool:
         """Check if current time is within the specified range."""

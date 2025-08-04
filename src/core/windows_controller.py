@@ -1025,3 +1025,32 @@ class WindowsController(IWindowsController):
                 modifier_keys = []
         
         return result
+
+
+# Global windows controller instance
+_windows_controller: Optional[WindowsController] = None
+
+
+def get_windows_controller() -> WindowsController:
+    """
+    Get the global windows controller instance.
+    
+    Returns:
+        WindowsController instance
+    """
+    global _windows_controller
+    if _windows_controller is None:
+        _windows_controller = WindowsController()
+    return _windows_controller
+
+
+def initialize_windows_controller() -> WindowsController:
+    """
+    Initialize the global windows controller.
+    
+    Returns:
+        WindowsController instance
+    """
+    global _windows_controller
+    _windows_controller = WindowsController()
+    return _windows_controller

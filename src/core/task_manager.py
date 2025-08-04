@@ -497,3 +497,32 @@ class TaskManager(ITaskManager):
         except Exception as e:
             print(f"Failed to stop task: {e}")
             return False
+
+
+# Global task manager instance
+_task_manager: Optional[TaskManager] = None
+
+
+def get_task_manager() -> TaskManager:
+    """
+    Get the global task manager instance.
+    
+    Returns:
+        TaskManager instance
+    """
+    global _task_manager
+    if _task_manager is None:
+        _task_manager = TaskManager()
+    return _task_manager
+
+
+def initialize_task_manager() -> TaskManager:
+    """
+    Initialize the global task manager.
+    
+    Returns:
+        TaskManager instance
+    """
+    global _task_manager
+    _task_manager = TaskManager()
+    return _task_manager

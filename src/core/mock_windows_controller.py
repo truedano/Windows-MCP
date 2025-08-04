@@ -21,7 +21,7 @@ class MockWindowsController(IWindowsController):
             App(
                 name="notepad",
                 title="記事本",
-                pid=1234,
+                process_id=1234,
                 window_handle=12345,
                 is_visible=True,
                 x=100, y=100, width=800, height=600
@@ -29,7 +29,7 @@ class MockWindowsController(IWindowsController):
             App(
                 name="calculator",
                 title="小算盤",
-                pid=5678,
+                process_id=5678,
                 window_handle=56789,
                 is_visible=True,
                 x=200, y=200, width=400, height=500
@@ -37,7 +37,7 @@ class MockWindowsController(IWindowsController):
             App(
                 name="chrome",
                 title="Google Chrome",
-                pid=9012,
+                process_id=9012,
                 window_handle=90123,
                 is_visible=True,
                 x=0, y=0, width=1024, height=768

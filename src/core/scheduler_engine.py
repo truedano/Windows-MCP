@@ -16,6 +16,7 @@ from src.core.interfaces import ISchedulerEngine, ITaskManager, IWindowsControll
 from src.core.task_manager import get_task_manager
 from src.core.config_manager import get_config_manager
 from src.core.log_manager import get_log_manager
+from src.core.system_context_provider import get_system_context_provider, SystemContextProvider
 from src.storage.log_storage import get_log_storage
 from src.utils.constants import DEFAULT_SCHEDULE_CHECK_FREQUENCY
 
@@ -48,13 +49,15 @@ class SchedulerEngine(ISchedulerEngine):
     
     def __init__(self, 
                  task_manager: Optional[ITaskManager] = None,
-                 windows_controller: Optional[IWindowsController] = None):
+                 windows_controller: Optional[IWindowsController] = None,
+                 system_context_provider: Optional[SystemContextProvider] = None):
         """
         Initialize scheduler engine.
         
         Args:
             task_manager: Task manager instance
             windows_controller: Windows controller instance
+            system_context_provider: System context provider instance
         """
         self.task_manager = task_manager or get_task_manager()
         self.windows_controller = windows_controller
@@ -64,6 +67,7 @@ class SchedulerEngine(ISchedulerEngine):
         self.config_manager = get_config_manager()
         self.log_manager = get_log_manager()
         self.log_storage = get_log_storage()
+        self.system_context_provider = system_context_provider or get_system_context_provider()
         
         # Scheduler state
         self._state = SchedulerState.STOPPED
@@ -469,16 +473,33 @@ class SchedulerEngine(ISchedulerEngine):
                 
                 self._execution_stats['next_execution_time'] = next_execution
             
-            # Queue tasks for execution
+            # Get current system context for conditional trigger evaluation
+            system_context = self.system_context_provider.get_current_context()
+            context_dict = system_context.to_dict()
+            
+            # Filter tasks based on conditional triggers
+            executable_tasks = []
             for task in due_tasks:
                 if task.status == TaskStatus.PENDING:
-                    request = TaskExecutionRequest(task, current_time)
-                    self._execution_queue.put(request)
-                    
-                    # Update task status
-                    self.task_manager.update_task_status(task.id, TaskStatus.RUNNING)
-                    
-                    self.logger.debug(f"Queued task for execution: {task.name}")
+                    # Check if task should execute based on conditional triggers
+                    if task.schedule.should_execute(context_dict):
+                        executable_tasks.append(task)
+                        self.logger.debug(f"Task {task.name} passed conditional trigger evaluation")
+                    else:
+                        self.logger.debug(f"Task {task.name} failed conditional trigger evaluation")
+            
+            # Queue tasks for execution
+            for task in executable_tasks:
+                request = TaskExecutionRequest(task, current_time)
+                self._execution_queue.put(request)
+                
+                # Update task status
+                self.task_manager.update_task_status(task.id, TaskStatus.RUNNING)
+                
+                self.logger.debug(f"Queued task for execution: {task.name}")
+            
+            if executable_tasks:
+                self.logger.info(f"Queued {len(executable_tasks)} tasks for execution after conditional trigger evaluation")
             
         except Exception as e:
             self.logger.error(f"Error checking due tasks: {e}")
@@ -759,17 +780,19 @@ def get_scheduler_engine() -> SchedulerEngine:
 
 
 def initialize_scheduler_engine(task_manager: Optional[ITaskManager] = None,
-                              windows_controller: Optional[IWindowsController] = None) -> SchedulerEngine:
+                              windows_controller: Optional[IWindowsController] = None,
+                              system_context_provider: Optional[SystemContextProvider] = None) -> SchedulerEngine:
     """
     Initialize the global scheduler engine.
     
     Args:
         task_manager: Optional custom task manager
         windows_controller: Optional custom windows controller
+        system_context_provider: Optional custom system context provider
         
     Returns:
         SchedulerEngine instance
     """
     global _scheduler_engine
-    _scheduler_engine = SchedulerEngine(task_manager, windows_controller)
+    _scheduler_engine = SchedulerEngine(task_manager, windows_controller, system_context_provider)
     return _scheduler_engine
