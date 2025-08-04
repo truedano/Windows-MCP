@@ -414,3 +414,72 @@ class TaskManager(ITaskManager):
                 continue
         
         return imported_count
+    
+    def execute_task_immediately(self, task_id: str) -> bool:
+        """
+        Execute a task immediately, bypassing the scheduler.
+        
+        Args:
+            task_id: ID of the task to execute
+            
+        Returns:
+            bool: True if execution was successful
+        """
+        task = self.get_task(task_id)
+        if not task:
+            return False
+        
+        try:
+            # Update task status
+            task.status = TaskStatus.RUNNING
+            
+            # Execute the task (placeholder implementation)
+            # In a real implementation, this would integrate with Windows-MCP
+            print(f"Executing task immediately: {task.name}")
+            
+            # Simulate execution
+            import time
+            time.sleep(0.1)  # Brief delay to simulate work
+            
+            # Mark as completed
+            task.status = TaskStatus.COMPLETED
+            task.mark_executed()
+            
+            return True
+            
+        except Exception as e:
+            task.status = TaskStatus.FAILED
+            task.increment_retry()
+            print(f"Task execution failed: {e}")
+            return False
+    
+    def stop_task(self, task_id: str) -> bool:
+        """
+        Stop a running task.
+        
+        Args:
+            task_id: ID of the task to stop
+            
+        Returns:
+            bool: True if task was stopped successfully
+        """
+        task = self.get_task(task_id)
+        if not task:
+            return False
+        
+        if task.status != TaskStatus.RUNNING:
+            return False
+        
+        try:
+            # Stop the task (placeholder implementation)
+            print(f"Stopping task: {task.name}")
+            
+            # Update status
+            task.status = TaskStatus.PENDING
+            task.update_next_execution()
+            
+            return True
+            
+        except Exception as e:
+            print(f"Failed to stop task: {e}")
+            return False

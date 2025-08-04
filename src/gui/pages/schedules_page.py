@@ -9,6 +9,7 @@ from typing import List
 from src.gui.page_manager import BasePage
 from src.gui.widgets.task_list_widget import TaskListWidget
 from src.gui.widgets.task_detail_widget import TaskDetailWidget
+from src.gui.widgets.control_buttons_widget import ControlButtonsWidget
 from src.core.task_manager import TaskManager
 
 
@@ -21,6 +22,7 @@ class SchedulesPage(BasePage):
         self.task_manager = task_manager
         self.task_list_widget = None
         self.task_detail_widget = None
+        self.control_buttons_widget = None
     
     def initialize_content(self) -> None:
         """Initialize page content (called once)."""
@@ -53,9 +55,10 @@ class SchedulesPage(BasePage):
         main_frame.grid_rowconfigure(0, weight=1)
         main_frame.grid_columnconfigure(0, weight=2)
         main_frame.grid_columnconfigure(1, weight=1)
+        main_frame.grid_columnconfigure(2, weight=1)
         
         # Task list widget
-        task_list_frame = ttk.LabelFrame(main_frame, text="任務清單", padding=5)
+        task_list_frame = ttk.LabelFrame(main_frame, text="Task List", padding=5)
         task_list_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
         task_list_frame.grid_rowconfigure(0, weight=1)
         task_list_frame.grid_columnconfigure(0, weight=1)
@@ -64,54 +67,33 @@ class SchedulesPage(BasePage):
         self.task_list_widget.grid(row=0, column=0, sticky="nsew")
         self.task_list_widget.set_selection_callback(self._on_task_selection_changed)
         
-        # Task detail and control panel
+        # Task detail panel
         detail_frame = ttk.LabelFrame(main_frame, text="Task Details", padding=5)
-        detail_frame.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
-        detail_frame.grid_rowconfigure(1, weight=1)
+        detail_frame.grid(row=0, column=1, sticky="nsew", padx=5)
+        detail_frame.grid_rowconfigure(0, weight=1)
         detail_frame.grid_columnconfigure(0, weight=1)
-        
-        # Control buttons
-        control_frame = ttk.Frame(detail_frame)
-        control_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
-        
-        self.new_button = ttk.Button(
-            control_frame,
-            text="New Task",
-            command=self._create_new_task,
-            width=12
-        )
-        self.new_button.pack(side="left", padx=(0, 5))
-        
-        self.edit_button = ttk.Button(
-            control_frame,
-            text="Edit Task",
-            command=self._edit_selected_task,
-            state="disabled",
-            width=12
-        )
-        self.edit_button.pack(side="left", padx=(0, 5))
-        
-        self.delete_button = ttk.Button(
-            control_frame,
-            text="Delete Task",
-            command=self._delete_selected_tasks,
-            state="disabled",
-            width=12
-        )
-        self.delete_button.pack(side="left", padx=(0, 5))
-        
-        self.execute_button = ttk.Button(
-            control_frame,
-            text="Execute Now",
-            command=self._execute_selected_task,
-            state="disabled",
-            width=12
-        )
-        self.execute_button.pack(side="left")
         
         # Task detail widget
         self.task_detail_widget = TaskDetailWidget(detail_frame, self.task_manager)
-        self.task_detail_widget.grid(row=1, column=0, sticky="nsew")
+        self.task_detail_widget.grid(row=0, column=0, sticky="nsew")
+        
+        # Control buttons panel
+        control_frame = ttk.LabelFrame(main_frame, text="Task Operations", padding=5)
+        control_frame.grid(row=0, column=2, sticky="nsew", padx=(5, 0))
+        control_frame.grid_rowconfigure(0, weight=1)
+        control_frame.grid_columnconfigure(0, weight=1)
+        
+        # Control buttons widget
+        self.control_buttons_widget = ControlButtonsWidget(control_frame, self.task_manager)
+        self.control_buttons_widget.grid(row=0, column=0, sticky="nsew")
+        
+        # Set up callbacks
+        self.control_buttons_widget.set_callbacks(
+            on_task_created=self._on_task_operation_completed,
+            on_task_updated=self._on_task_operation_completed,
+            on_task_deleted=self._on_task_operation_completed,
+            on_task_executed=self._on_task_operation_completed
+        )
     
     def refresh_content(self) -> None:
         """Refresh page content (called on each activation)."""
@@ -122,13 +104,9 @@ class SchedulesPage(BasePage):
     
     def _on_task_selection_changed(self, selected_task_ids: List[str]) -> None:
         """Handle task selection changes."""
-        # Update button states
-        has_selection = len(selected_task_ids) > 0
-        single_selection = len(selected_task_ids) == 1
-        
-        self.edit_button.config(state="normal" if single_selection else "disabled")
-        self.delete_button.config(state="normal" if has_selection else "disabled")
-        self.execute_button.config(state="normal" if single_selection else "disabled")
+        # Update control buttons
+        if self.control_buttons_widget:
+            self.control_buttons_widget.set_selected_tasks(selected_task_ids)
         
         # Update detail display
         if not selected_task_ids:
@@ -143,33 +121,35 @@ class SchedulesPage(BasePage):
         else:
             self.task_detail_widget.display_multiple_tasks(selected_task_ids)
     
-    
-    def _create_new_task(self) -> None:
-        """Create a new task."""
-        # TODO: Implement task creation dialog
-        print("Create new task - TODO: Implement task creation dialog")
-    
-    def _edit_selected_task(self) -> None:
-        """Edit the selected task."""
-        selected_ids = self.task_list_widget.get_selected_task_ids()
-        if len(selected_ids) == 1:
-            # TODO: Implement task editing dialog
-            print(f"Edit task {selected_ids[0]} - TODO: Implement task editing dialog")
-    
-    def _delete_selected_tasks(self) -> None:
-        """Delete the selected tasks."""
-        selected_ids = self.task_list_widget.get_selected_task_ids()
+    def _on_task_operation_completed(self) -> None:
+        """Handle completion of task operations."""
+        # Refresh the task list to reflect changes
+        if self.task_list_widget:
+            self.task_list_widget.refresh_tasks()
+        
+        # Refresh the detail widget if it's showing a task
+        if self.task_detail_widget:
+            self.task_detail_widget.refresh_current_task()
+        
+        # Clear selection if tasks were deleted
+        selected_ids = self.task_list_widget.get_selected_task_ids() if self.task_list_widget else []
         if selected_ids:
-            # TODO: Implement confirmation dialog and deletion
-            print(f"Delete tasks {selected_ids} - TODO: Implement confirmation dialog")
-    
-    def _execute_selected_task(self) -> None:
-        """Execute the selected task immediately."""
-        selected_ids = self.task_list_widget.get_selected_task_ids()
-        if len(selected_ids) == 1:
-            task_id = selected_ids[0]
-            try:
-                # TODO: Implement immediate task execution
-                print(f"Execute task {task_id} - TODO: Implement immediate execution")
-            except Exception as e:
-                print(f"Error executing task {task_id}: {e}")
+            # Verify that selected tasks still exist
+            valid_ids = []
+            for task_id in selected_ids:
+                if self.task_manager.get_task(task_id):
+                    valid_ids.append(task_id)
+            
+            if len(valid_ids) != len(selected_ids):
+                # Some tasks were deleted, update selection
+                if self.control_buttons_widget:
+                    self.control_buttons_widget.set_selected_tasks(valid_ids)
+                
+                if not valid_ids:
+                    self.task_detail_widget.clear_display()
+                elif len(valid_ids) == 1:
+                    task = self.task_manager.get_task(valid_ids[0])
+                    if task:
+                        self.task_detail_widget.display_task(task)
+                else:
+                    self.task_detail_widget.display_multiple_tasks(valid_ids)
