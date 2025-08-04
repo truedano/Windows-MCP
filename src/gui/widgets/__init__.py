@@ -12,6 +12,7 @@ from .execution_preview_widget import ExecutionPreviewWidget
 from .app_list_widget import AppListWidget
 from .app_detail_widget import AppDetailWidget
 from .app_monitor_panel import AppMonitorPanel
+from .status_monitor_widget import StatusMonitorWidget
 
 __all__ = [
     'TaskListWidget', 
@@ -23,5 +24,6 @@ __all__ = [
     'ExecutionPreviewWidget',
     'AppListWidget',
     'AppDetailWidget',
-    'AppMonitorPanel'
+    'AppMonitorPanel',
+    'StatusMonitorWidget'
 ]

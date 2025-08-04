@@ -48,14 +48,8 @@ class OverviewPage(BasePage):
         # Page title
         self._create_page_title()
         
-        # Statistics section
+        # Status monitor section (replaces old statistics, activity, and status sections)
         self._create_statistics_section()
-        
-        # Recent activity section
-        self._create_recent_activity_section()
-        
-        # System status section
-        self._create_system_status_section()
     
     def _create_page_title(self):
         """Create page title."""
@@ -78,30 +72,12 @@ class OverviewPage(BasePage):
         subtitle_label.pack(anchor=tk.W, pady=(5, 0))
     
     def _create_statistics_section(self):
-        """Create statistics cards section."""
-        stats_frame = ttk.Frame(self.frame)
-        stats_frame.pack(fill=tk.X, pady=(0, 25))
+        """Create statistics cards section using StatusMonitorWidget."""
+        from ..widgets import StatusMonitorWidget
         
-        # Statistics cards
-        self.stats_cards = {}
-        
-        stats_config = [
-            ("active_tasks", "Active Tasks", "活躍任務", "#0078d4"),
-            ("total_executions", "Total Executions", "總執行次數", "#107c10"),
-            ("success_rate", "Success Rate", "成功率", "#d83b01")
-        ]
-        
-        for i, (key, title, subtitle, color) in enumerate(stats_config):
-            card_frame = self._create_stat_card(
-                stats_frame, title, subtitle, 
-                self._format_stat_value(key), color
-            )
-            card_frame.grid(row=0, column=i, padx=(0, 15), sticky="ew")
-            self.stats_cards[key] = card_frame
-        
-        # Configure grid weights for responsive layout
-        for i in range(len(stats_config)):
-            stats_frame.grid_columnconfigure(i, weight=1)
+        # Create status monitor widget
+        self.status_monitor = StatusMonitorWidget(self.frame)
+        self.status_monitor.pack(fill=tk.BOTH, expand=True, pady=(0, 25))
     
     def _create_stat_card(self, parent: tk.Widget, title: str, subtitle: str, 
                          value: str, color: str) -> ttk.Frame:
