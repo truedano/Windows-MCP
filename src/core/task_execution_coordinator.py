@@ -24,6 +24,8 @@ from src.core.scheduler_engine import get_scheduler_engine
 from src.core.log_manager import get_log_manager
 from src.core.config_manager import get_config_manager, ConfigObserver
 from src.core.windows_controller import get_windows_controller
+from src.core.security_manager import get_security_manager, OperationType, require_security_validation
+from src.core.error_handler import get_global_error_handler, PermissionError
 
 
 @dataclass

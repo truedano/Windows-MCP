@@ -2,13 +2,15 @@
 Factory for creating and validating action parameters.
 """
 
-from typing import Dict, Any, Optional, Type
+from typing import Dict, Any, Optional, Type, Tuple
 from .action import (
     ActionType, ActionParams, LaunchAppParams, CloseAppParams,
     ResizeWindowParams, MoveWindowParams, WindowControlParams,
     ClickElementParams, TypeTextParams, SendKeysParams, CustomCommandParams,
     validate_action_params
 )
+from src.core.security_manager import get_security_manager, OperationType, SecurityLevel
+from src.core.error_handler import ValidationError, PermissionError
 
 
 class ActionParamsFactory:
@@ -221,12 +223,47 @@ class ActionParamsFactory:
                 if not isinstance(value, list) or len(value) == 0:
                     return False, None, f"參數 '{param_name}' 必須是非空列表"
         
+        # Perform security validation
+        try:
+            security_manager = get_security_manager()
+            operation_type = _map_action_to_operation_type(action_type)
+            target = params.get('app_name', params.get('window_title', params.get('command', 'unknown')))
+            
+            is_allowed, security_level, reason = security_manager.validate_operation_security(
+                operation_type, str(target), params
+            )
+            
+            if not is_allowed:
+                return False, None, f"安全驗證失敗: {reason}"
+                
+        except Exception as e:
+            return False, None, f"安全驗證錯誤: {str(e)}"
+        
         # Create the params object
         params_obj = ActionParamsFactory.create_params(action_type, params)
         if params_obj is None:
             return False, None, "參數驗證失敗"
         
         return True, params_obj, "驗證成功"
+
+
+def _map_action_to_operation_type(action_type: ActionType) -> OperationType:
+    """Map ActionType to OperationType for security validation."""
+    mapping = {
+        ActionType.LAUNCH_APP: OperationType.APP_LAUNCH,
+        ActionType.CLOSE_APP: OperationType.APP_CLOSE,
+        ActionType.RESIZE_WINDOW: OperationType.WINDOW_CONTROL,
+        ActionType.MOVE_WINDOW: OperationType.WINDOW_CONTROL,
+        ActionType.MINIMIZE_WINDOW: OperationType.WINDOW_CONTROL,
+        ActionType.MAXIMIZE_WINDOW: OperationType.WINDOW_CONTROL,
+        ActionType.RESTORE_WINDOW: OperationType.WINDOW_CONTROL,
+        ActionType.FOCUS_WINDOW: OperationType.WINDOW_CONTROL,
+        ActionType.CLICK_ELEMENT: OperationType.WINDOW_CONTROL,
+        ActionType.TYPE_TEXT: OperationType.WINDOW_CONTROL,
+        ActionType.SEND_KEYS: OperationType.WINDOW_CONTROL,
+        ActionType.CUSTOM_COMMAND: OperationType.CUSTOM_COMMAND,
+    }
+    return mapping.get(action_type, OperationType.WINDOW_CONTROL)
 
 
 def get_action_type_display_name(action_type: ActionType) -> str:
