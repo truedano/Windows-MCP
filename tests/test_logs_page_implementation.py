@@ -21,15 +21,17 @@ try:
     
     # Check if the class has required methods
     required_methods = [
-        'initialize_content',
-        'refresh_content',
-        '_create_page_header',
-        '_on_search_performed',
-        '_load_logs',
-        '_show_log_details',
+        '_create_page_ui',
+        '_load_initial_data',
+        '_on_search',
+        '_on_page_change',
+        '_load_logs_page',
+        '_refresh_logs',
         '_export_logs',
-        '_clear_old_logs',
-        '_show_statistics'
+        '_clear_logs',
+        '_backup_logs',
+        '_on_log_select',
+        'activate'
     ]
     
     for method in required_methods:

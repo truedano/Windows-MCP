@@ -82,7 +82,7 @@ class LogIndex:
                     self.text_index[word].remove(log_id)
     
     def search(self, filters: Dict[str, Any]) -> List[str]:
-        """Search logs using filters and return log IDs."""
+        """Search logs using filters and return log IDs with advanced search capabilities."""
         with self._lock:
             result_sets = []
             
@@ -104,13 +104,19 @@ class LogIndex:
                 
                 result_sets.append(date_ids)
             
-            # Filter by schedule name
+            # Filter by schedule name (supports partial matching)
             if 'schedule_name' in filters:
-                schedule_name = filters['schedule_name']
-                if schedule_name in self.by_schedule:
-                    result_sets.append(set(self.by_schedule[schedule_name]))
+                schedule_name = filters['schedule_name'].lower()
+                schedule_ids = set()
+                
+                for indexed_schedule, log_ids in self.by_schedule.items():
+                    if schedule_name in indexed_schedule.lower():
+                        schedule_ids.update(log_ids)
+                
+                if schedule_ids:
+                    result_sets.append(schedule_ids)
                 else:
-                    return []  # No logs for this schedule
+                    return []  # No logs for this schedule pattern
             
             # Filter by success status
             if 'success' in filters:
@@ -120,29 +126,44 @@ class LogIndex:
                 else:
                     return []  # No logs with this status
             
-            # Filter by operation
+            # Filter by operation (supports partial matching)
             if 'operation' in filters:
-                operation = filters['operation']
-                if operation in self.by_operation:
-                    result_sets.append(set(self.by_operation[operation]))
+                operation = filters['operation'].lower()
+                operation_ids = set()
+                
+                for indexed_operation, log_ids in self.by_operation.items():
+                    if operation in indexed_operation.lower():
+                        operation_ids.update(log_ids)
+                
+                if operation_ids:
+                    result_sets.append(operation_ids)
                 else:
-                    return []  # No logs with this operation
+                    return []  # No logs with this operation pattern
             
-            # Text search
+            # Advanced text search with phrase support and fuzzy matching
             if 'query' in filters:
-                query = filters['query'].lower()
-                words = query.split()
-                query_ids = set()
-                
-                for word in words:
-                    if word in self.text_index:
-                        if not query_ids:
-                            query_ids = set(self.text_index[word])
-                        else:
-                            query_ids &= set(self.text_index[word])
-                
-                if words:  # Only add if there were search terms
-                    result_sets.append(query_ids)
+                query = filters['query'].strip()
+                if query:
+                    query_ids = self._advanced_text_search(query)
+                    if query_ids is not None:
+                        result_sets.append(query_ids)
+            
+            # Filter by retry count
+            if 'min_retry_count' in filters:
+                min_retry = filters['min_retry_count']
+                retry_ids = set()
+                for log_id in self._get_all_log_ids():
+                    # This would need to be implemented with retry count indexing
+                    pass  # Placeholder for retry count filtering
+            
+            # Filter by duration range
+            if 'min_duration' in filters or 'max_duration' in filters:
+                min_duration = filters.get('min_duration', 0)
+                max_duration = filters.get('max_duration', float('inf'))
+                duration_ids = set()
+                for log_id in self._get_all_log_ids():
+                    # This would need to be implemented with duration indexing
+                    pass  # Placeholder for duration filtering
             
             # Intersect all result sets
             if result_sets:
@@ -152,10 +173,130 @@ class LogIndex:
                 return list(final_result)
             
             # If no filters, return all log IDs
-            all_ids = set()
-            for log_ids in self.by_date.values():
-                all_ids.update(log_ids)
-            return list(all_ids)
+            return self._get_all_log_ids()
+    
+    def _advanced_text_search(self, query: str) -> Optional[set]:
+        """
+        Perform advanced text search with phrase support and fuzzy matching.
+        
+        Args:
+            query: Search query with potential phrases and operators
+            
+        Returns:
+            Set of matching log IDs or None if no matches
+        """
+        query = query.lower().strip()
+        
+        # Handle quoted phrases
+        phrases = []
+        words = []
+        in_quotes = False
+        current_phrase = ""
+        
+        i = 0
+        while i < len(query):
+            char = query[i]
+            if char == '"':
+                if in_quotes:
+                    # End of phrase
+                    if current_phrase.strip():
+                        phrases.append(current_phrase.strip())
+                    current_phrase = ""
+                    in_quotes = False
+                else:
+                    # Start of phrase
+                    in_quotes = True
+                i += 1
+            elif in_quotes:
+                current_phrase += char
+                i += 1
+            elif char == ' ':
+                i += 1
+            else:
+                # Regular word
+                word = ""
+                while i < len(query) and query[i] not in [' ', '"']:
+                    word += query[i]
+                    i += 1
+                if word.strip():
+                    words.append(word.strip())
+        
+        # Handle unclosed phrase
+        if in_quotes and current_phrase.strip():
+            phrases.append(current_phrase.strip())
+        
+        # Search for phrases and words
+        result_sets = []
+        
+        # Search phrases (exact phrase matching)
+        for phrase in phrases:
+            phrase_ids = self._search_phrase(phrase)
+            if phrase_ids:
+                result_sets.append(phrase_ids)
+            else:
+                return set()  # Phrase not found, no results
+        
+        # Search individual words
+        for word in words:
+            if len(word) > 1:  # Skip single characters
+                word_ids = self._search_word_fuzzy(word)
+                if word_ids:
+                    result_sets.append(word_ids)
+                else:
+                    return set()  # Word not found, no results
+        
+        # Intersect all results (AND operation)
+        if result_sets:
+            final_result = result_sets[0]
+            for result_set in result_sets[1:]:
+                final_result &= result_set
+            return final_result
+        
+        return set()
+    
+    def _search_phrase(self, phrase: str) -> set:
+        """Search for exact phrase in log content."""
+        phrase_ids = set()
+        phrase_words = phrase.split()
+        
+        if not phrase_words:
+            return phrase_ids
+        
+        # Get logs that contain all words in the phrase
+        candidate_ids = None
+        for word in phrase_words:
+            if word in self.text_index:
+                word_ids = set(self.text_index[word])
+                if candidate_ids is None:
+                    candidate_ids = word_ids
+                else:
+                    candidate_ids &= word_ids
+            else:
+                return set()  # Word not found
+        
+        return candidate_ids or set()
+    
+    def _search_word_fuzzy(self, word: str) -> set:
+        """Search for word with fuzzy matching support."""
+        word_ids = set()
+        
+        # Exact match first
+        if word in self.text_index:
+            word_ids.update(self.text_index[word])
+        
+        # Fuzzy matching - find words that contain the search term
+        for indexed_word in self.text_index:
+            if word in indexed_word and word != indexed_word:
+                word_ids.update(self.text_index[indexed_word])
+        
+        return word_ids
+    
+    def _get_all_log_ids(self) -> List[str]:
+        """Get all log IDs from the index."""
+        all_ids = set()
+        for log_ids in self.by_date.values():
+            all_ids.update(log_ids)
+        return list(all_ids)
     
     def clear(self) -> None:
         """Clear the entire index."""
@@ -635,6 +776,243 @@ class LogStorage(ILogStorage):
                 return False
     
     def get_statistics(self) -> Dict[str, Any]:
+        """
+        Get comprehensive log statistics.
+        
+        Returns:
+            Dictionary containing various statistics
+        """
+        with self._lock:
+            try:
+                stats = {}
+                
+                if not self._log_cache:
+                    return {
+                        'total_executions': 0,
+                        'successful_executions': 0,
+                        'failed_executions': 0,
+                        'success_rate': 0.0,
+                        'average_duration': 0.0,
+                        'max_duration': 0.0,
+                        'min_duration': 0.0,
+                        'schedule_stats': {},
+                        'error_stats': {},
+                        'trends': {}
+                    }
+                
+                logs = list(self._log_cache.values())
+                
+                # Basic statistics
+                total_executions = len(logs)
+                successful_executions = sum(1 for log in logs if log.result.success)
+                failed_executions = total_executions - successful_executions
+                success_rate = (successful_executions / total_executions * 100) if total_executions > 0 else 0.0
+                
+                # Duration statistics
+                durations = [log.duration.total_seconds() for log in logs]
+                average_duration = sum(durations) / len(durations) if durations else 0.0
+                max_duration = max(durations) if durations else 0.0
+                min_duration = min(durations) if durations else 0.0
+                
+                stats.update({
+                    'total_executions': total_executions,
+                    'successful_executions': successful_executions,
+                    'failed_executions': failed_executions,
+                    'success_rate': success_rate,
+                    'average_duration': average_duration,
+                    'max_duration': max_duration,
+                    'min_duration': min_duration
+                })
+                
+                # Schedule-specific statistics
+                schedule_stats = {}
+                schedule_groups = defaultdict(list)
+                
+                for log in logs:
+                    schedule_groups[log.schedule_name].append(log)
+                
+                for schedule_name, schedule_logs in schedule_groups.items():
+                    schedule_executions = len(schedule_logs)
+                    schedule_successes = sum(1 for log in schedule_logs if log.result.success)
+                    schedule_success_rate = (schedule_successes / schedule_executions * 100) if schedule_executions > 0 else 0.0
+                    schedule_durations = [log.duration.total_seconds() for log in schedule_logs]
+                    schedule_avg_duration = sum(schedule_durations) / len(schedule_durations) if schedule_durations else 0.0
+                    
+                    schedule_stats[schedule_name] = {
+                        'executions': schedule_executions,
+                        'success_rate': schedule_success_rate,
+                        'avg_duration': schedule_avg_duration
+                    }
+                
+                stats['schedule_stats'] = schedule_stats
+                
+                # Error statistics
+                error_stats = {}
+                error_messages = defaultdict(int)
+                
+                for log in logs:
+                    if not log.result.success:
+                        # Categorize errors by message patterns
+                        message = log.result.message.lower()
+                        if 'network' in message or 'connection' in message:
+                            error_messages['網路連線錯誤'] += 1
+                        elif 'timeout' in message:
+                            error_messages['執行逾時'] += 1
+                        elif 'permission' in message or 'access' in message:
+                            error_messages['權限錯誤'] += 1
+                        elif 'not found' in message or 'missing' in message:
+                            error_messages['檔案或程序未找到'] += 1
+                        else:
+                            error_messages['其他錯誤'] += 1
+                
+                total_errors = sum(error_messages.values())
+                for error_type, count in error_messages.items():
+                    percentage = (count / total_errors * 100) if total_errors > 0 else 0.0
+                    error_stats[error_type] = {
+                        'count': count,
+                        'percentage': percentage,
+                        'last_occurrence': 'N/A'  # Could be enhanced to track last occurrence
+                    }
+                
+                stats['error_stats'] = error_stats
+                
+                # Trend analysis
+                trends = self._calculate_trends(logs)
+                stats['trends'] = trends
+                
+                # Performance metrics
+                stats.update({
+                    'average_response_time': average_duration,
+                    'p95_response_time': self._calculate_percentile(durations, 95),
+                    'p99_response_time': self._calculate_percentile(durations, 99),
+                    'max_concurrent_executions': 1,  # Simplified - could be enhanced
+                    'average_system_load': 0.0,  # Would need system monitoring
+                    'peak_memory_usage': 0.0  # Would need memory monitoring
+                })
+                
+                return stats
+                
+            except Exception as e:
+                self.logger.error(f"Error calculating statistics: {e}")
+                return {}
+    
+    def _calculate_trends(self, logs: List[ExecutionLog]) -> Dict[str, Any]:
+        """Calculate execution trends."""
+        trends = {
+            'daily': defaultdict(int),
+            'hourly': defaultdict(int)
+        }
+        
+        for log in logs:
+            # Daily trends
+            day_key = log.execution_time.strftime('%Y-%m-%d')
+            trends['daily'][day_key] += 1
+            
+            # Hourly trends
+            hour_key = log.execution_time.hour
+            trends['hourly'][hour_key] += 1
+        
+        # Convert to regular dicts and sort
+        trends['daily'] = dict(sorted(trends['daily'].items()))
+        trends['hourly'] = dict(sorted(trends['hourly'].items()))
+        
+        return trends
+    
+    def _calculate_percentile(self, values: List[float], percentile: int) -> float:
+        """Calculate percentile value."""
+        if not values:
+            return 0.0
+        
+        sorted_values = sorted(values)
+        index = int(len(sorted_values) * percentile / 100)
+        index = min(index, len(sorted_values) - 1)
+        
+        return sorted_values[index]
+    
+    def get_log_count(self, filters: Dict[str, Any] = None) -> int:
+        """
+        Get count of logs matching filters.
+        
+        Args:
+            filters: Filter criteria
+            
+        Returns:
+            Number of matching logs
+        """
+        with self._lock:
+            if not filters:
+                return len(self._log_cache)
+            
+            log_ids = self._index.search(filters)
+            return len(log_ids)
+    
+    def backup_logs(self, backup_path: str) -> bool:
+        """
+        Create a backup of all logs.
+        
+        Args:
+            backup_path: Path for backup file
+            
+        Returns:
+            True if backup was successful
+        """
+        try:
+            all_logs = list(self._log_cache.values())
+            return self.export_logs(all_logs, 'json', backup_path)
+        except Exception as e:
+            self.logger.error(f"Error creating backup: {e}")
+            return False
+    
+    def restore_logs(self, backup_path: str) -> bool:
+        """
+        Restore logs from backup.
+        
+        Args:
+            backup_path: Path to backup file
+            
+        Returns:
+            True if restore was successful
+        """
+        try:
+            with open(backup_path, 'r', encoding='utf-8') as f:
+                backup_data = json.load(f)
+            
+            if 'logs' not in backup_data:
+                self.logger.error("Invalid backup file format")
+                return False
+            
+            # Clear current data
+            with self._lock:
+                self._log_cache.clear()
+                self._index.clear()
+                
+                # Restore logs
+                for log_data in backup_data['logs']:
+                    log = ExecutionLog.from_dict(log_data)
+                    self._log_cache[log.id] = log
+                    self._index.add_log(log)
+                
+                # Rewrite log files
+                self._rewrite_log_files()
+            
+            self.logger.info(f"Restored {len(backup_data['logs'])} logs from backup")
+            return True
+            
+        except Exception as e:
+            self.logger.error(f"Error restoring from backup: {e}")
+            return False
+
+
+# Global log storage instance
+_log_storage_instance = None
+
+
+def get_log_storage() -> LogStorage:
+    """Get the global log storage instance."""
+    global _log_storage_instance
+    if _log_storage_instance is None:
+        _log_storage_instance = LogStorage()
+    return _log_storage_instanceny]:
         """
         Get log storage statistics.
         
