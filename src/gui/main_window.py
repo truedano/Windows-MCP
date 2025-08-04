@@ -12,6 +12,9 @@ from src.utils.constants import (
     MAIN_WINDOW_MIN_WIDTH, MAIN_WINDOW_MIN_HEIGHT,
     MAIN_WINDOW_DEFAULT_WIDTH, MAIN_WINDOW_DEFAULT_HEIGHT
 )
+from src.gui.navigation import NavigationFrame
+from src.gui.page_manager import PageManager
+from src.gui.pages import OverviewPage, SchedulesPage, LogsPage, SettingsPage, HelpPage
 
 
 class MainWindow:
@@ -26,9 +29,10 @@ class MainWindow:
         """
         self.config = config or AppConfig.get_default()
         self.root = tk.Tk()
-        self.current_page = "Overview"
-        self.pages = {}
-        self.navigation_buttons = {}
+        
+        # Navigation and page management
+        self.navigation_frame: Optional[NavigationFrame] = None
+        self.page_manager: Optional[PageManager] = None
         
         # Initialize window
         self._setup_window()
@@ -101,230 +105,54 @@ class MainWindow:
         self.main_frame = ttk.Frame(self.root)
         self.main_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        # Create navigation frame
-        self._create_navigation_frame()
-        
-        # Create content area
-        self._create_content_area()
-        
-    def _create_navigation_frame(self):
-        """Create the unified navigation structure."""
-        # Navigation header with app logo/title
-        nav_header = ttk.Frame(self.main_frame)
-        nav_header.pack(fill=tk.X, pady=(0, 10))
-        
-        # App title with diamond symbol
-        title_label = ttk.Label(
-            nav_header, 
-            text="◆ Windows-MCP", 
-            font=("Arial", 14, "bold")
-        )
-        title_label.pack(side=tk.LEFT)
-        
-        # Navigation buttons frame
-        nav_buttons_frame = ttk.Frame(nav_header)
-        nav_buttons_frame.pack(side=tk.RIGHT)
-        
-        # Navigation buttons
-        nav_items = [
-            ("Overview", "系統概覽"),
-            ("Schedules", "排程管理"),
-            ("Logs", "執行記錄"),
-            ("Settings", "系統設定"),
-            ("Help", "說明文件")
-        ]
-        
-        for i, (page_id, display_name) in enumerate(nav_items):
-            btn = ttk.Button(
-                nav_buttons_frame,
-                text=display_name,
-                command=lambda p=page_id: self._switch_page(p),
-                style="Navigation.TButton"
-            )
-            btn.pack(side=tk.LEFT, padx=(5, 0))
-            self.navigation_buttons[page_id] = btn
-        
-        # Configure navigation button style
-        self._configure_navigation_style()
-        
-        # Separator line
-        separator = ttk.Separator(self.main_frame, orient=tk.HORIZONTAL)
-        separator.pack(fill=tk.X, pady=(0, 10))
-    
-    def _configure_navigation_style(self):
-        """Configure the navigation button styles."""
-        style = ttk.Style()
-        
-        # Configure navigation button style
-        style.configure(
-            "Navigation.TButton",
-            padding=(10, 5),
-            font=("Arial", 10)
+        # Create unified navigation system
+        self.navigation_frame = NavigationFrame(
+            self.main_frame, 
+            on_page_change=self._on_page_change
         )
         
-        # Configure active navigation button style
-        style.configure(
-            "NavigationActive.TButton",
-            padding=(10, 5),
-            font=("Arial", 10, "bold"),
-            relief="solid"
-        )
-    
-    def _create_content_area(self):
-        """Create the main content area for pages."""
-        # Content frame with scrollable area
-        self.content_frame = ttk.Frame(self.main_frame)
-        self.content_frame.pack(fill=tk.BOTH, expand=True)
-        
-        # Create notebook for page management (hidden tabs)
-        self.notebook = ttk.Notebook(self.content_frame)
-        self.notebook.pack(fill=tk.BOTH, expand=True)
-        
-        # Hide notebook tabs
-        style = ttk.Style()
-        style.layout("Hidden.TNotebook", [])
-        style.layout("Hidden.TNotebook.Tab", [])
-        self.notebook.configure(style="Hidden.TNotebook")
+        # Create page manager
+        self.page_manager = PageManager(self.main_frame)
         
         # Initialize pages
         self._initialize_pages()
         
-        # Show default page
-        self._switch_page("Overview")
+        # Set default page
+        self._switch_to_default_page()
     
     def _initialize_pages(self):
         """Initialize all application pages."""
-        # Overview page
-        overview_frame = ttk.Frame(self.notebook)
-        self.notebook.add(overview_frame, text="Overview")
-        self.pages["Overview"] = overview_frame
-        self._create_overview_page(overview_frame)
+        if not self.page_manager:
+            return
         
-        # Schedules page
-        schedules_frame = ttk.Frame(self.notebook)
-        self.notebook.add(schedules_frame, text="Schedules")
-        self.pages["Schedules"] = schedules_frame
-        self._create_schedules_page(schedules_frame)
-        
-        # Logs page
-        logs_frame = ttk.Frame(self.notebook)
-        self.notebook.add(logs_frame, text="Logs")
-        self.pages["Logs"] = logs_frame
-        self._create_logs_page(logs_frame)
-        
-        # Settings page
-        settings_frame = ttk.Frame(self.notebook)
-        self.notebook.add(settings_frame, text="Settings")
-        self.pages["Settings"] = settings_frame
-        self._create_settings_page(settings_frame)
-        
-        # Help page
-        help_frame = ttk.Frame(self.notebook)
-        self.notebook.add(help_frame, text="Help")
-        self.pages["Help"] = help_frame
-        self._create_help_page(help_frame)
+        # Register all pages
+        self.page_manager.register_page(OverviewPage)
+        self.page_manager.register_page(SchedulesPage)
+        self.page_manager.register_page(LogsPage)
+        self.page_manager.register_page(SettingsPage)
+        self.page_manager.register_page(HelpPage)
     
-    def _create_overview_page(self, parent):
-        """Create the system overview page."""
-        # Page title
-        title_label = ttk.Label(parent, text="System Overview", font=("Arial", 16, "bold"))
-        title_label.pack(anchor=tk.W, pady=(0, 20))
-        
-        # Statistics cards frame
-        stats_frame = ttk.Frame(parent)
-        stats_frame.pack(fill=tk.X, pady=(0, 20))
-        
-        # Statistics cards
-        stats = [
-            ("Active Tasks", "12"),
-            ("Total Executions", "1,247"),
-            ("Success Rate", "95.2%")
-        ]
-        
-        for i, (label, value) in enumerate(stats):
-            card = ttk.LabelFrame(stats_frame, text=label, padding=10)
-            card.grid(row=0, column=i, padx=(0, 10), sticky="ew")
-            
-            value_label = ttk.Label(card, text=value, font=("Arial", 18, "bold"))
-            value_label.pack()
-        
-        # Configure grid weights
-        for i in range(len(stats)):
-            stats_frame.grid_columnconfigure(i, weight=1)
-        
-        # Recent Activity section
-        activity_label = ttk.Label(parent, text="Recent Activity", font=("Arial", 14, "bold"))
-        activity_label.pack(anchor=tk.W, pady=(20, 10))
-        
-        activity_frame = ttk.LabelFrame(parent, text="", padding=10)
-        activity_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 20))
-        
-        # Activity list (placeholder)
-        activities = [
-            "[10:30] Daily Backup - Success",
-            "[10:15] Close Browser - Success", 
-            "[10:00] System Cleanup - Failed",
-            "[09:45] Launch Calculator - Success"
-        ]
-        
-        for activity in activities:
-            activity_item = ttk.Label(activity_frame, text=activity)
-            activity_item.pack(anchor=tk.W, pady=2)
-        
-        # System Status section
-        status_label = ttk.Label(parent, text="System Status", font=("Arial", 14, "bold"))
-        status_label.pack(anchor=tk.W, pady=(20, 10))
-        
-        status_frame = ttk.LabelFrame(parent, text="", padding=10)
-        status_frame.pack(fill=tk.X)
-        
-        # Status items
-        status_items = [
-            "Scheduler Engine: ● Running",
-            "Windows-MCP: ● Connected",
-            "Log Recording: ● Enabled",
-            "Next Task: Daily Backup in 2h 30m"
-        ]
-        
-        for item in status_items:
-            status_item = ttk.Label(status_frame, text=item)
-            status_item.pack(anchor=tk.W, pady=2)
+    def _switch_to_default_page(self):
+        """Switch to the default page."""
+        if self.navigation_frame:
+            self.navigation_frame.switch_to_page("Overview")
     
-    def _create_schedules_page(self, parent):
-        """Create the schedules management page."""
-        title_label = ttk.Label(parent, text="Schedule Management", font=("Arial", 16, "bold"))
-        title_label.pack(anchor=tk.W, pady=(0, 20))
+    def _on_page_change(self, page_id: str):
+        """
+        Handle page change from navigation.
         
-        # Placeholder content
-        placeholder = ttk.Label(parent, text="排程管理頁面將在後續任務中實作")
-        placeholder.pack(expand=True)
+        Args:
+            page_id: ID of the page to switch to
+        """
+        if self.page_manager:
+            success = self.page_manager.switch_to_page(page_id)
+            if success:
+                self.set_status(f"當前頁面: {page_id}")
+            else:
+                self.set_status(f"無法切換到頁面: {page_id}")
     
-    def _create_logs_page(self, parent):
-        """Create the execution logs page."""
-        title_label = ttk.Label(parent, text="Execution Logs", font=("Arial", 16, "bold"))
-        title_label.pack(anchor=tk.W, pady=(0, 20))
-        
-        # Placeholder content
-        placeholder = ttk.Label(parent, text="執行記錄頁面將在後續任務中實作")
-        placeholder.pack(expand=True)
     
-    def _create_settings_page(self, parent):
-        """Create the settings page."""
-        title_label = ttk.Label(parent, text="System Settings", font=("Arial", 16, "bold"))
-        title_label.pack(anchor=tk.W, pady=(0, 20))
-        
-        # Placeholder content
-        placeholder = ttk.Label(parent, text="系統設定頁面將在後續任務中實作")
-        placeholder.pack(expand=True)
     
-    def _create_help_page(self, parent):
-        """Create the help page."""
-        title_label = ttk.Label(parent, text="Help & Support", font=("Arial", 16, "bold"))
-        title_label.pack(anchor=tk.W, pady=(0, 20))
-        
-        # Placeholder content
-        placeholder = ttk.Label(parent, text="說明文件頁面將在後續任務中實作")
-        placeholder.pack(expand=True)
     
     def _create_status_bar(self):
         """Create the status bar."""
@@ -349,29 +177,6 @@ class MainWindow:
         connection_label = ttk.Label(self.status_bar, textvariable=self.connection_status)
         connection_label.pack(side=tk.LEFT, padx=5, pady=2)
     
-    def _switch_page(self, page_id: str):
-        """
-        Switch to the specified page.
-        
-        Args:
-            page_id: ID of the page to switch to
-        """
-        if page_id not in self.pages:
-            return
-        
-        # Update navigation button styles
-        for btn_id, btn in self.navigation_buttons.items():
-            if btn_id == page_id:
-                btn.configure(style="NavigationActive.TButton")
-            else:
-                btn.configure(style="Navigation.TButton")
-        
-        # Switch notebook page
-        page_index = list(self.pages.keys()).index(page_id)
-        self.notebook.select(page_index)
-        
-        self.current_page = page_id
-        self.status_text.set(f"當前頁面: {page_id}")
     
     def _bind_events(self):
         """Bind window events."""
@@ -382,6 +187,16 @@ class MainWindow:
         self.root.bind("<Control-q>", lambda e: self._on_exit())
         self.root.bind("<F5>", lambda e: self._on_refresh())
         self.root.bind("<F11>", lambda e: self._on_toggle_fullscreen())
+        
+        # Window resize event for responsive layout
+        self.root.bind("<Configure>", self._on_window_configure)
+    
+    def _on_window_configure(self, event):
+        """Handle window resize for responsive layout."""
+        if event.widget == self.root and self.navigation_frame:
+            # Update navigation layout based on window width
+            window_width = self.root.winfo_width()
+            self.navigation_frame.configure_responsive_layout(window_width)
     
     def _on_window_close(self):
         """Handle window close event."""
@@ -490,4 +305,43 @@ Windows應用程式排程控制GUI
         Returns:
             Current page ID
         """
-        return self.current_page
+        if self.navigation_frame:
+            return self.navigation_frame.get_current_page() or "Overview"
+        return "Overview"
+    
+    def refresh_current_page(self):
+        """Refresh the current page content."""
+        if self.page_manager:
+            self.page_manager.refresh_current_page()
+    
+    def switch_to_page(self, page_id: str) -> bool:
+        """
+        Switch to a specific page.
+        
+        Args:
+            page_id: Page ID to switch to
+            
+        Returns:
+            True if switch was successful
+        """
+        if self.navigation_frame:
+            return self.navigation_frame.switch_to_page(page_id)
+        return False
+    
+    def get_page_manager(self) -> Optional[PageManager]:
+        """
+        Get the page manager instance.
+        
+        Returns:
+            PageManager instance or None
+        """
+        return self.page_manager
+    
+    def get_navigation_frame(self) -> Optional[NavigationFrame]:
+        """
+        Get the navigation frame instance.
+        
+        Returns:
+            NavigationFrame instance or None
+        """
+        return self.navigation_frame
