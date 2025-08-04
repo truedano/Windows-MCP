@@ -22,6 +22,37 @@
 
 **Windows MCP** is a lightweight, open-source project that enables seamless integration between AI agents and the Windows operating system. Acting as an MCP server bridges the gap between LLMs and the Windows operating system, allowing agents to perform tasks such as **file navigation, application control, UI interaction, QA testing,** and more.
 
+## Windows Scheduler GUI
+
+本專案還包含一個基於 Windows-MCP 的圖形化排程管理工具 - **Windows Scheduler GUI**，提供使用者友善的介面來管理和自動化 Windows 應用程式的操作。
+
+### GUI 主要功能
+
+- **直觀的圖形介面**：包含功能表列、工具列和主要工作區域
+- **應用程式管理**：掃描並管理系統中的 Windows 應用程式
+- **排程任務建立**：建立和編輯自動化任務，支援多種執行時間設定
+- **任務監控**：監控任務執行狀態和查看執行歷史
+- **安全性控制**：安全的操作確認和權限管理
+
+### GUI 技術規格
+
+- **Python版本**: 3.13+
+- **GUI框架**: Tkinter
+- **整合模組**: Windows-MCP
+- **支援系統**: Windows 7-11
+
+### 啟動 GUI
+
+```bash
+# 直接啟動 GUI
+python src/gui/scheduler_app.py
+
+# 或從主程式啟動
+python main.py --gui
+```
+
+更多 GUI 開發資訊請參考 [開發文檔.md](開發文檔.md)。
+
 ## Updates
 
 - Try out 🪟[Windows-Use](https://github.com/CursorTouch/Windows-Use)!!, an agent built using Windows-MCP.
