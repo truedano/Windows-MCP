@@ -13,6 +13,7 @@ class ScheduleType(Enum):
     ONCE = "once"           # 一次性執行
     DAILY = "daily"         # 每日重複
     WEEKLY = "weekly"       # 每週重複
+    MONTHLY = "monthly"     # 每月重複
     CUSTOM = "custom"       # 自訂間隔
 
 
