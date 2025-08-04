@@ -4,7 +4,7 @@ Modern Settings page implementation with widget components.
 
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List  # Fixed import
 
 from src.gui.page_manager import BasePage
 from src.core.config_manager import get_config_manager, ConfigObserver

@@ -4,10 +4,12 @@ System overview page implementation.
 
 import tkinter as tk
 from tkinter import ttk
-from datetime import datetime
-from typing import Dict, List, Tuple
+import logging
+from datetime import datetime, timedelta
+from typing import Dict, List, Tuple, Optional
 
 from src.gui.page_manager import BasePage
+from src.models.statistics_models import SystemStatistics, ActivityItem, SystemStatus, ExecutionStatistics
 
 
 class OverviewPage(BasePage):
@@ -395,17 +397,23 @@ class OverviewPage(BasePage):
             recent_activities = self._get_recent_activities()
             system_status = self._get_system_status()
             
-            # Create statistics object
-            statistics = SystemStatistics(
-                active_tasks=active_tasks,
+            # Create execution statistics object
+            exec_stats = ExecutionStatistics(
                 total_executions=execution_stats.get("total", 0),
                 successful_executions=execution_stats.get("successful", 0),
                 failed_executions=execution_stats.get("failed", 0),
-                success_rate=execution_stats.get("success_rate", 0.0),
-                recent_activities=recent_activities,
-                system_status=system_status,
-                uptime=self._get_system_uptime(),
-                last_updated=datetime.now()
+                average_duration=execution_stats.get("average_duration", timedelta(0)),
+                most_frequent_errors=execution_stats.get("frequent_errors", [])
+            )
+            
+            # Create statistics object
+            statistics = SystemStatistics(
+                active_tasks=active_tasks,
+                total_tasks=execution_stats.get("total", 0),
+                scheduler_uptime=self._get_system_uptime(),
+                last_execution_time=execution_stats.get("last_execution", datetime.now()),
+                next_execution_time=execution_stats.get("next_execution", datetime.now()),
+                execution_stats=exec_stats
             )
             
             return statistics
@@ -450,9 +458,10 @@ class OverviewPage(BasePage):
                     status = "success" if log.result.success else "failure"
                     activity = ActivityItem(
                         timestamp=log.execution_time,
-                        description=f"{log.schedule_name}",
-                        status=status,
-                        details=log.result.message
+                        task_name=f"{log.schedule_name}",
+                        action="execute",
+                        result=status,
+                        message=log.result.message
                     )
                     activities.append(activity)
                 
@@ -508,7 +517,22 @@ class OverviewPage(BasePage):
     
     def _get_default_statistics(self) -> SystemStatistics:
         """Get default statistics when data is unavailable."""
-        return SystemStatistics.create_empty()
+        default_exec_stats = ExecutionStatistics(
+            total_executions=0,
+            successful_executions=0,
+            failed_executions=0,
+            average_duration=timedelta(0),
+            most_frequent_errors=[]
+        )
+        
+        return SystemStatistics(
+            active_tasks=0,
+            total_tasks=0,
+            scheduler_uptime=timedelta(0),
+            last_execution_time=datetime.now(),
+            next_execution_time=datetime.now(),
+            execution_stats=default_exec_stats
+        )
     
     def _update_statistics_display(self, statistics: SystemStatistics):
         """Update statistics panel display."""
@@ -577,9 +601,10 @@ class OverviewPage(BasePage):
         try:
             activity = ActivityItem(
                 timestamp=datetime.now(),
-                description=description,
-                status=status,
-                details=details
+                task_name=description,
+                action="system",
+                result=status,
+                message=details
             )
             
             if self.recent_activity_widget:

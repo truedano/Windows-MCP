@@ -15,6 +15,7 @@ import pyperclip as pc
 import requests
 import asyncio
 import ctypes
+import sys
 
 pg.FAILSAFE=False
 pg.PAUSE=1.0
