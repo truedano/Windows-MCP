@@ -370,58 +370,6 @@ class LogRecordingOptionsWidget:
 - 控制通知和日誌記錄選項
 - 驗證和儲存設定變更
 
-#### 1.8 說明頁面 (HelpPage)
-```python
-class HelpPage:
-    - header: HeaderWidget
-    - about_section: AboutSectionWidget
-    - faq_section: FAQSectionWidget
-    - contact_section: ContactSectionWidget
-    
-    + load_help_content(self)
-    + search_help(self, query: str)
-    + expand_faq(self, faq_id: str)
-    + collapse_faq(self, faq_id: str)
-
-class AboutSectionWidget:
-    - title_label: Label
-    - description_text: Text
-    
-    + update_content(self, content: str)
-
-class FAQSectionWidget:
-    - title_label: Label
-    - faq_items: List[FAQItemWidget]
-    
-    + add_faq_item(self, question: str, answer: str)
-    + expand_item(self, item_id: str)
-    + collapse_item(self, item_id: str)
-
-class FAQItemWidget:
-    - question_frame: Frame
-    - question_label: Label
-    - expand_button: Button
-    - answer_text: Text
-    - is_expanded: bool
-    
-    + toggle_expansion(self)
-    + set_question(self, question: str)
-    + set_answer(self, answer: str)
-
-class ContactSectionWidget:
-    - title_label: Label
-    - contact_info_text: Text
-    - email_link: Label
-    
-    + update_contact_info(self, info: str)
-    + open_email_client(self)
-```
-
-**職責：**
-- 提供應用程式說明和使用指南
-- 顯示常見問題解答 (FAQ)
-- 提供聯絡資訊和支援管道
-- 支援說明內容的搜尋和導航
 
 #### 1.9 系統概覽頁面 (OverviewPage)
 ```python
@@ -618,55 +566,6 @@ class ConfigObserver:
 - 支援設定的即時應用
 - 處理配置驗證和預設值
 
-#### 2.6 說明內容管理器 (HelpContentManager)
-```python
-class HelpContentManager:
-    - content: HelpContent
-    - storage: HelpContentStorage
-    
-    + load_help_content(self) -> HelpContent
-    + get_about_content(self) -> str
-    + get_faq_items(self) -> List[FAQItem]
-    + search_content(self, query: str) -> List[SearchResult]
-    + get_contact_info(self) -> ContactInfo
-    + update_content(self, content: HelpContent)
-
-@dataclass
-class HelpContent:
-    about_text: str
-    faq_items: List[FAQItem]
-    contact_info: ContactInfo
-    version: str
-    last_updated: datetime
-
-@dataclass
-class FAQItem:
-    id: str
-    question: str
-    answer: str
-    category: str
-    order: int
-
-@dataclass
-class ContactInfo:
-    email: str
-    support_hours: str
-    response_time: str
-    website: str
-
-@dataclass
-class SearchResult:
-    content_type: str  # "about", "faq", "contact"
-    title: str
-    snippet: str
-    relevance_score: float
-```
-
-**職責：**
-- 管理說明頁面的內容資料
-- 提供內容搜尋和檢索功能
-- 支援FAQ的分類和排序
-- 處理說明內容的更新和版本控制
 
 ### 3. 資料模型 (models/)
 
@@ -830,25 +729,6 @@ class LogStorage:
 - 提供快速搜尋索引
 - 支援多種匯出格式 (JSON, CSV, TXT)
 
-#### 4.4 說明內容存儲 (HelpContentStorage)
-```python
-class HelpContentStorage:
-    - content_file: str
-    - assets_dir: str
-    
-    + load_help_content(self) -> HelpContent
-    + save_help_content(self, content: HelpContent)
-    + get_default_content(self) -> HelpContent
-    + load_faq_items(self) -> List[FAQItem]
-    + save_faq_items(self, items: List[FAQItem])
-    + load_contact_info(self) -> ContactInfo
-```
-
-**職責：**
-- 存儲和載入說明頁面內容
-- 管理FAQ項目的持久化
-- 提供預設說明內容
-- 支援說明內容的本地化
 
 ## 介面設計
 
@@ -867,7 +747,6 @@ class HelpContentStorage:
 │    Schedules: 排程管理和詳細設定                            │
 │    Logs: 執行記錄和日誌查看                                 │
 │    Settings: 系統設定和配置                                 │
-│    Help: 說明文件和支援資訊                                 │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -877,7 +756,6 @@ class HelpContentStorage:
 - **Schedules** - 排程管理頁面，包含排程清單、詳細資訊和建立/編輯功能
 - **Logs** - 執行記錄頁面，顯示任務執行歷史和日誌搜尋
 - **Settings** - 設定頁面，提供系統配置選項
-- **Help** - 說明頁面，包含使用指南、FAQ和聯絡資訊
 
 ### 系統概覽頁面設計
 
@@ -1027,55 +905,6 @@ class HelpContentStorage:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 說明頁面設計
-
-基於提供的界面設計，說明頁面採用清晰的文件式佈局：
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ ◆ Windows-MCP     Overview  Schedules  Logs  Settings  Help │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│    Help                                                     │
-│                                                             │
-│    About Windows-MCP                                        │
-│                                                             │
-│    Windows-MCP is an open-source program designed for      │
-│    scheduling and controlling Windows application windows. │
-│    It allows users to automate window management tasks,    │
-│    such as resizing, repositioning, and closing windows    │
-│    at specific times or in response to certain events.     │
-│    This tool is particularly useful for users who need     │
-│    to manage multiple applications efficiently or          │
-│    automate repetitive window management tasks.            │
-│                                                             │
-│    Frequently Asked Questions                               │
-│                                                             │
-│    ┌─────────────────────────────────────────────────────┐ │
-│    │ How do I schedule a window control task?        ▲  │ │
-│    │                                                     │ │
-│    │ To schedule a task, use the task scheduler          │ │
-│    │ interface within Windows-MCP. Specify the target   │ │
-│    │ window, the desired action (e.g., resize, move,    │ │
-│    │ close), and the trigger (e.g., time, event).       │ │
-│    └─────────────────────────────────────────────────────┘ │
-│                                                             │
-│    ┌─────────────────────────────────────────────────────┐ │
-│    │ Can I control multiple windows simultaneously?  ▼  │ │
-│    └─────────────────────────────────────────────────────┘ │
-│                                                             │
-│    ┌─────────────────────────────────────────────────────┐ │
-│    │ Is there a way to monitor task execution?       ▼  │ │
-│    └─────────────────────────────────────────────────────┘ │
-│                                                             │
-│    Contact Us                                               │
-│                                                             │
-│    If you have any questions or feedback, please reach     │
-│    out to us via email at support@windowsmcp.com. We aim   │
-│    to respond to all inquiries within 24-48 hours.         │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
 
 ### 任務建立/編輯對話框
 
