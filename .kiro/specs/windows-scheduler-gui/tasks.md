@@ -300,7 +300,7 @@
   - _需求: 6.1, 6.2, 6.3, 6.4, 6.5_
 
 
-- [ ] 13. 實作系統概覽頁面
+- [x] 13. 實作系統概覽頁面
   - 建立OverviewPage類別，作為主要的儀表板頁面
   - 實作StatisticsPanelWidget顯示關鍵統計資訊
   - 建立RecentActivityWidget顯示最近活動

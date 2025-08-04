@@ -13,6 +13,9 @@ from .app_list_widget import AppListWidget
 from .app_detail_widget import AppDetailWidget
 from .app_monitor_panel import AppMonitorPanel
 from .status_monitor_widget import StatusMonitorWidget
+from .statistics_panel_widget import StatisticsPanelWidget, StatisticsCard
+from .recent_activity_widget import RecentActivityWidget, ActivityListItem
+from .system_status_widget import SystemStatusWidget, StatusIndicator
 from .schedule_frequency_widget import ScheduleFrequencyWidget
 from .notification_options_widget import NotificationOptionsWidget
 from .log_recording_options_widget import LogRecordingOptionsWidget
@@ -29,6 +32,12 @@ __all__ = [
     'AppDetailWidget',
     'AppMonitorPanel',
     'StatusMonitorWidget',
+    'StatisticsPanelWidget',
+    'StatisticsCard',
+    'RecentActivityWidget', 
+    'ActivityListItem',
+    'SystemStatusWidget',
+    'StatusIndicator',
     'ScheduleFrequencyWidget',
     'NotificationOptionsWidget',
     'LogRecordingOptionsWidget'

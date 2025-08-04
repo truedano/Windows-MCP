@@ -16,29 +16,41 @@ class OverviewPage(BasePage):
     def __init__(self, parent: tk.Widget):
         """Initialize overview page."""
         super().__init__(parent, "Overview", "系統概覽")
+        self.logger = logging.getLogger(__name__)
         
-        # Statistics data
-        self.stats_data = {
-            "active_tasks": 12,
-            "total_executions": 1247,
-            "success_rate": 95.2
-        }
+        # Widget references
+        self.statistics_panel: Optional[any] = None
+        self.recent_activity_widget: Optional[any] = None
+        self.system_status_widget: Optional[any] = None
         
-        # Recent activities
-        self.recent_activities = [
-            ("[10:30]", "Daily Backup", "Success"),
-            ("[10:15]", "Close Browser", "Success"),
-            ("[10:00]", "System Cleanup", "Failed"),
-            ("[09:45]", "Launch Calculator", "Success")
-        ]
+        # Data managers
+        self._statistics_manager: Optional[any] = None
+        self._task_manager: Optional[any] = None
+        self._scheduler_engine: Optional[any] = None
         
-        # System status
-        self.system_status = {
-            "scheduler_engine": "Running",
-            "windows_mcp": "Connected",
-            "log_recording": "Enabled",
-            "next_task": "Daily Backup in 2h 30m"
-        }
+        # Auto-refresh timer
+        self._refresh_timer: Optional[str] = None
+        self._refresh_interval = 5000  # 5 seconds
+        
+        # Initialize data managers
+        self._initialize_managers()
+    
+    def _initialize_managers(self):
+        """Initialize data managers."""
+        try:
+            # Import managers
+            from src.core.task_manager import get_task_manager
+            from src.core.scheduler_engine import get_scheduler_engine
+            from src.core.log_manager import get_log_manager
+            
+            self._task_manager = get_task_manager()
+            self._scheduler_engine = get_scheduler_engine()
+            self._log_manager = get_log_manager()
+            
+        except ImportError as e:
+            self.logger.warning(f"Could not import managers: {e}")
+        except Exception as e:
+            self.logger.error(f"Error initializing managers: {e}")
     
     def initialize_content(self) -> None:
         """Initialize page content (called once)."""
@@ -48,8 +60,11 @@ class OverviewPage(BasePage):
         # Page title
         self._create_page_title()
         
-        # Status monitor section (replaces old statistics, activity, and status sections)
-        self._create_statistics_section()
+        # Main content area with scrollable frame
+        self._create_main_content()
+        
+        # Start auto-refresh
+        self._start_auto_refresh()
     
     def _create_page_title(self):
         """Create page title."""
@@ -71,13 +86,74 @@ class OverviewPage(BasePage):
         )
         subtitle_label.pack(anchor=tk.W, pady=(5, 0))
     
-    def _create_statistics_section(self):
-        """Create statistics cards section using StatusMonitorWidget."""
-        from ..widgets import StatusMonitorWidget
+    def _create_main_content(self):
+        """Create main content area with all widgets."""
+        # Main container with scrollable area
+        main_container = ttk.Frame(self.frame)
+        main_container.pack(fill=tk.BOTH, expand=True)
         
-        # Create status monitor widget
-        self.status_monitor = StatusMonitorWidget(self.frame)
-        self.status_monitor.pack(fill=tk.BOTH, expand=True, pady=(0, 25))
+        # Create canvas for scrolling
+        canvas = tk.Canvas(main_container, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(main_container, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+        
+        # Configure scrolling
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Pack canvas and scrollbar
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # Store references
+        self.canvas = canvas
+        self.scrollable_frame = scrollable_frame
+        
+        # Create content sections
+        self._create_statistics_section()
+        self._create_recent_activity_section()
+        self._create_system_status_section()
+    
+    def _create_statistics_section(self):
+        """Create statistics panel section."""
+        try:
+            from ..widgets.statistics_panel_widget import StatisticsPanelWidget
+            
+            self.statistics_panel = StatisticsPanelWidget(self.scrollable_frame)
+            self.statistics_panel.pack(fill=tk.X, pady=(0, 20))
+            
+        except ImportError as e:
+            self.logger.error(f"Could not import StatisticsPanelWidget: {e}")
+            self._create_fallback_statistics()
+    
+    def _create_recent_activity_section(self):
+        """Create recent activity section."""
+        try:
+            from ..widgets.recent_activity_widget import RecentActivityWidget
+            
+            self.recent_activity_widget = RecentActivityWidget(self.scrollable_frame, max_items=10)
+            self.recent_activity_widget.pack(fill=tk.X, pady=(0, 20))
+            
+        except ImportError as e:
+            self.logger.error(f"Could not import RecentActivityWidget: {e}")
+            self._create_fallback_activity()
+    
+    def _create_system_status_section(self):
+        """Create system status section."""
+        try:
+            from ..widgets.system_status_widget import SystemStatusWidget
+            
+            self.system_status_widget = SystemStatusWidget(self.scrollable_frame)
+            self.system_status_widget.pack(fill=tk.X, pady=(0, 20))
+            
+        except ImportError as e:
+            self.logger.error(f"Could not import SystemStatusWidget: {e}")
+            self._create_fallback_status()
     
     def _create_stat_card(self, parent: tk.Widget, title: str, subtitle: str, 
                          value: str, color: str) -> ttk.Frame:
@@ -252,85 +328,280 @@ class OverviewPage(BasePage):
             )
             status_text.pack(side=tk.LEFT)
     
+    def _create_fallback_statistics(self):
+        """Create fallback statistics display."""
+        stats_frame = ttk.LabelFrame(self.scrollable_frame, text="系統統計", padding=15)
+        stats_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        ttk.Label(stats_frame, text="統計資訊載入中...", foreground="#666666").pack()
+    
+    def _create_fallback_activity(self):
+        """Create fallback activity display."""
+        activity_frame = ttk.LabelFrame(self.scrollable_frame, text="最近活動", padding=15)
+        activity_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        ttk.Label(activity_frame, text="活動記錄載入中...", foreground="#666666").pack()
+    
+    def _create_fallback_status(self):
+        """Create fallback status display."""
+        status_frame = ttk.LabelFrame(self.scrollable_frame, text="系統狀態", padding=15)
+        status_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        ttk.Label(status_frame, text="系統狀態載入中...", foreground="#666666").pack()
+    
+    def _start_auto_refresh(self):
+        """Start auto-refresh timer."""
+        if self._refresh_timer:
+            self.frame.after_cancel(self._refresh_timer)
+        
+        self._refresh_timer = self.frame.after(self._refresh_interval, self._auto_refresh)
+    
+    def _auto_refresh(self):
+        """Auto-refresh callback."""
+        if self.is_active and self.is_initialized:
+            self.refresh_content()
+        
+        # Schedule next refresh
+        self._refresh_timer = self.frame.after(self._refresh_interval, self._auto_refresh)
+    
     def refresh_content(self) -> None:
         """Refresh page content (called on each activation)."""
         if not self.is_initialized:
             return
         
-        # Update statistics
-        self._update_statistics()
-        
-        # Update recent activities
-        self._update_recent_activities()
-        
-        # Update system status
-        self._update_system_status()
+        try:
+            # Get current statistics
+            statistics = self._get_current_statistics()
+            
+            # Update all widgets
+            self._update_statistics_display(statistics)
+            self._update_activity_display(statistics)
+            self._update_status_display(statistics)
+            
+        except Exception as e:
+            self.logger.error(f"Error refreshing overview content: {e}")
     
-    def _update_statistics(self):
-        """Update statistics display."""
-        # In a real implementation, this would fetch current data
-        # For now, we'll simulate some changes
-        import random
+    def _get_current_statistics(self) -> SystemStatistics:
+        """
+        Get current system statistics.
         
-        # Simulate minor changes in statistics
-        self.stats_data["active_tasks"] = random.randint(10, 15)
-        self.stats_data["total_executions"] += random.randint(0, 5)
-        self.stats_data["success_rate"] = round(random.uniform(94.0, 97.0), 1)
-        
-        # Update display would require rebuilding cards or updating labels
-        # This is a simplified version
+        Returns:
+            SystemStatistics object with current data
+        """
+        try:
+            # Get data from managers
+            active_tasks = self._get_active_tasks_count()
+            execution_stats = self._get_execution_statistics()
+            recent_activities = self._get_recent_activities()
+            system_status = self._get_system_status()
+            
+            # Create statistics object
+            statistics = SystemStatistics(
+                active_tasks=active_tasks,
+                total_executions=execution_stats.get("total", 0),
+                successful_executions=execution_stats.get("successful", 0),
+                failed_executions=execution_stats.get("failed", 0),
+                success_rate=execution_stats.get("success_rate", 0.0),
+                recent_activities=recent_activities,
+                system_status=system_status,
+                uptime=self._get_system_uptime(),
+                last_updated=datetime.now()
+            )
+            
+            return statistics
+            
+        except Exception as e:
+            self.logger.error(f"Error getting current statistics: {e}")
+            return self._get_default_statistics()
     
-    def _update_recent_activities(self):
-        """Update recent activities list."""
-        # Refresh the activity list
-        self._populate_activity_list()
+    def _get_active_tasks_count(self) -> int:
+        """Get count of active tasks."""
+        try:
+            if self._task_manager:
+                tasks = self._task_manager.get_all_tasks()
+                return len([task for task in tasks if task.status.value in ["active", "scheduled"]])
+            return 0
+        except Exception:
+            return 0
     
-    def _update_system_status(self):
+    def _get_execution_statistics(self) -> Dict[str, any]:
+        """Get execution statistics."""
+        try:
+            if self._log_manager:
+                stats = self._log_manager.get_execution_statistics()
+                return {
+                    "total": stats.total_executions,
+                    "successful": stats.successful_executions,
+                    "failed": stats.failed_executions,
+                    "success_rate": stats.success_rate
+                }
+            return {"total": 0, "successful": 0, "failed": 0, "success_rate": 0.0}
+        except Exception:
+            return {"total": 0, "successful": 0, "failed": 0, "success_rate": 0.0}
+    
+    def _get_recent_activities(self) -> List[ActivityItem]:
+        """Get recent activities."""
+        try:
+            if self._log_manager:
+                logs = self._log_manager.get_logs(page=1, page_size=10, filters={})
+                activities = []
+                
+                for log in logs:
+                    status = "success" if log.result.success else "failure"
+                    activity = ActivityItem(
+                        timestamp=log.execution_time,
+                        description=f"{log.schedule_name}",
+                        status=status,
+                        details=log.result.message
+                    )
+                    activities.append(activity)
+                
+                return activities
+            return []
+        except Exception:
+            return []
+    
+    def _get_system_status(self) -> SystemStatus:
+        """Get current system status."""
+        try:
+            scheduler_running = False
+            if self._scheduler_engine:
+                scheduler_running = getattr(self._scheduler_engine, 'is_running', False)
+            
+            # Get next task info
+            next_task_name = None
+            next_task_time = None
+            
+            if self._task_manager:
+                tasks = self._task_manager.get_all_tasks()
+                upcoming_tasks = [task for task in tasks if task.next_execution]
+                if upcoming_tasks:
+                    next_task = min(upcoming_tasks, key=lambda t: t.next_execution)
+                    next_task_name = next_task.name
+                    next_task_time = next_task.next_execution
+            
+            return SystemStatus(
+                scheduler_running=scheduler_running,
+                windows_mcp_connected=True,  # Assume connected for now
+                logging_enabled=True,  # Assume enabled for now
+                next_task_name=next_task_name,
+                next_task_time=next_task_time,
+                active_tasks_count=self._get_active_tasks_count()
+            )
+            
+        except Exception as e:
+            self.logger.error(f"Error getting system status: {e}")
+            return SystemStatus(
+                scheduler_running=False,
+                windows_mcp_connected=False,
+                logging_enabled=True
+            )
+    
+    def _get_system_uptime(self) -> timedelta:
+        """Get system uptime."""
+        try:
+            if self._scheduler_engine and hasattr(self._scheduler_engine, 'start_time'):
+                return datetime.now() - self._scheduler_engine.start_time
+            return timedelta()
+        except Exception:
+            return timedelta()
+    
+    def _get_default_statistics(self) -> SystemStatistics:
+        """Get default statistics when data is unavailable."""
+        return SystemStatistics.create_empty()
+    
+    def _update_statistics_display(self, statistics: SystemStatistics):
+        """Update statistics panel display."""
+        try:
+            if self.statistics_panel:
+                self.statistics_panel.update_statistics(statistics)
+        except Exception as e:
+            self.logger.error(f"Error updating statistics display: {e}")
+    
+    def _update_activity_display(self, statistics: SystemStatistics):
+        """Update recent activity display."""
+        try:
+            if self.recent_activity_widget:
+                self.recent_activity_widget.update_from_statistics(statistics)
+        except Exception as e:
+            self.logger.error(f"Error updating activity display: {e}")
+    
+    def _update_status_display(self, statistics: SystemStatistics):
         """Update system status display."""
-        # Update status information
-        # In a real implementation, this would check actual system status
-        pass
+        try:
+            if self.system_status_widget:
+                self.system_status_widget.update_from_statistics(statistics)
+        except Exception as e:
+            self.logger.error(f"Error updating status display: {e}")
     
-    def get_statistics(self) -> Dict[str, any]:
+    def load_overview_data(self):
+        """Load overview data from all sources."""
+        try:
+            self.refresh_content()
+        except Exception as e:
+            self.logger.error(f"Error loading overview data: {e}")
+    
+    def refresh_statistics(self):
+        """Refresh statistics data."""
+        try:
+            statistics = self._get_current_statistics()
+            self._update_statistics_display(statistics)
+        except Exception as e:
+            self.logger.error(f"Error refreshing statistics: {e}")
+    
+    def update_recent_activity(self):
+        """Update recent activity data."""
+        try:
+            statistics = self._get_current_statistics()
+            self._update_activity_display(statistics)
+        except Exception as e:
+            self.logger.error(f"Error updating recent activity: {e}")
+    
+    def update_system_status(self):
+        """Update system status data."""
+        try:
+            statistics = self._get_current_statistics()
+            self._update_status_display(statistics)
+        except Exception as e:
+            self.logger.error(f"Error updating system status: {e}")
+    
+    def add_activity(self, description: str, status: str, details: Optional[str] = None):
+        """
+        Add a new activity to the recent activities.
+        
+        Args:
+            description: Activity description
+            status: Activity status ("success", "failure", "warning", "info")
+            details: Optional additional details
+        """
+        try:
+            activity = ActivityItem(
+                timestamp=datetime.now(),
+                description=description,
+                status=status,
+                details=details
+            )
+            
+            if self.recent_activity_widget:
+                self.recent_activity_widget.add_activity(activity)
+                
+        except Exception as e:
+            self.logger.error(f"Error adding activity: {e}")
+    
+    def get_statistics(self) -> SystemStatistics:
         """
         Get current statistics data.
         
         Returns:
-            Dictionary of statistics
+            SystemStatistics object
         """
-        return self.stats_data.copy()
+        return self._get_current_statistics()
     
-    def add_activity(self, time: str, task: str, status: str):
-        """
-        Add a new activity to the recent activities list.
+    def destroy(self):
+        """Clean up resources when page is destroyed."""
+        # Cancel auto-refresh timer
+        if self._refresh_timer:
+            self.frame.after_cancel(self._refresh_timer)
+            self._refresh_timer = None
         
-        Args:
-            time: Activity time
-            task: Task name
-            status: Execution status
-        """
-        # Add to beginning of list
-        self.recent_activities.insert(0, (time, task, status))
-        
-        # Keep only last 10 activities
-        if len(self.recent_activities) > 10:
-            self.recent_activities = self.recent_activities[:10]
-        
-        # Refresh display if page is active
-        if self.is_active:
-            self._populate_activity_list()
-    
-    def update_system_status(self, component: str, status: str):
-        """
-        Update system status for a component.
-        
-        Args:
-            component: Component name
-            status: New status
-        """
-        if component in self.system_status:
-            self.system_status[component] = status
-            
-            # Refresh display if page is active
-            if self.is_active:
-                self._update_system_status()
+        super().destroy()
