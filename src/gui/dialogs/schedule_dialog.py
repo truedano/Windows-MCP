@@ -38,7 +38,8 @@ class ScheduleDialog:
         # Create dialog window
         self.dialog = tk.Toplevel(parent)
         self.dialog.title("建立排程" if task is None else "編輯排程")
-        self.dialog.geometry("800x700")
+        self.dialog.geometry("1000x800")
+        self.dialog.minsize(900, 700)
         self.dialog.resizable(True, True)
         self.dialog.transient(parent)
         self.dialog.grab_set()
@@ -79,18 +80,21 @@ class ScheduleDialog:
         """Center the dialog on the parent window."""
         self.dialog.update_idletasks()
         
-        # Get parent window position and size
-        parent_x = self.parent.winfo_rootx()
-        parent_y = self.parent.winfo_rooty()
-        parent_width = self.parent.winfo_width()
-        parent_height = self.parent.winfo_height()
+        # Get screen dimensions
+        screen_width = self.dialog.winfo_screenwidth()
+        screen_height = self.dialog.winfo_screenheight()
         
-        # Calculate center position
-        dialog_width = self.dialog.winfo_reqwidth()
-        dialog_height = self.dialog.winfo_reqheight()
+        # Get dialog dimensions
+        dialog_width = 1000
+        dialog_height = 800
         
-        x = parent_x + (parent_width - dialog_width) // 2
-        y = parent_y + (parent_height - dialog_height) // 2
+        # Calculate center position on screen
+        x = (screen_width - dialog_width) // 2
+        y = (screen_height - dialog_height) // 2
+        
+        # Ensure dialog is not positioned off-screen
+        x = max(0, x)
+        y = max(0, y)
         
         self.dialog.geometry(f"{dialog_width}x{dialog_height}+{x}+{y}")
     
@@ -163,31 +167,73 @@ class ScheduleDialog:
         schedule_frame = ttk.Frame(self.notebook)
         self.notebook.add(schedule_frame, text="排程設定")
         
+        # Create scrollable frame for schedule tab
+        canvas = tk.Canvas(schedule_frame, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(schedule_frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
         # Trigger time widget
-        trigger_frame = ttk.LabelFrame(schedule_frame, text="觸發時間", padding=10)
-        trigger_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 10))
+        trigger_frame = ttk.LabelFrame(scrollable_frame, text="觸發時間", padding=10)
+        trigger_frame.pack(fill=tk.X, pady=(0, 10), padx=10)
         
         self.trigger_time_widget = TriggerTimeWidget(trigger_frame, 
                                                    on_change=self._update_preview)
-        self.trigger_time_widget.pack(fill=tk.BOTH, expand=True)
+        self.trigger_time_widget.pack(fill=tk.X)
         
         # Conditional trigger widget
-        condition_frame = ttk.LabelFrame(schedule_frame, text="條件觸發", padding=10)
-        condition_frame.pack(fill=tk.X)
+        condition_frame = ttk.LabelFrame(scrollable_frame, text="條件觸發", padding=10)
+        condition_frame.pack(fill=tk.X, padx=10)
         
         self.conditional_trigger_widget = ConditionalTriggerWidget(condition_frame,
                                                                  on_change=self._update_preview)
         self.conditional_trigger_widget.pack(fill=tk.X)
+        
+        # Bind mouse wheel to canvas
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        canvas.bind("<MouseWheel>", _on_mousewheel)
     
     def _create_action_tab(self):
         """Create the action settings tab."""
         action_frame = ttk.Frame(self.notebook)
         self.notebook.add(action_frame, text="動作設定")
         
+        # Create scrollable frame for action tab
+        canvas = tk.Canvas(action_frame, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(action_frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
         # Action type widget
-        self.action_type_widget = ActionTypeWidget(action_frame, 
+        self.action_type_widget = ActionTypeWidget(scrollable_frame, 
                                                  on_change=self._update_preview)
-        self.action_type_widget.pack(fill=tk.BOTH, expand=True)
+        self.action_type_widget.pack(fill=tk.X, padx=10, pady=10)
+        
+        # Bind mouse wheel to canvas
+        def _on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        canvas.bind("<MouseWheel>", _on_mousewheel)
     
     def _create_options_tab(self):
         """Create the options tab."""
