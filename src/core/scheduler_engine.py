@@ -58,6 +58,9 @@ class SchedulerEngine(ISchedulerEngine):
         """
         self.task_manager = task_manager or get_task_manager()
         self.windows_controller = windows_controller
+        if not self.windows_controller:
+            from src.core.windows_controller import get_windows_controller
+            self.windows_controller = get_windows_controller()
         self.config_manager = get_config_manager()
         self.log_manager = get_log_manager()
         self.log_storage = get_log_storage()

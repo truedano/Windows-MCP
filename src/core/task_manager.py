@@ -82,7 +82,9 @@ class TaskManager(ITaskManager):
     def update_task(self, task_id: str, name: Optional[str] = None, 
                    target_app: Optional[str] = None, action_type: Optional[ActionType] = None,
                    action_params: Optional[Dict[str, any]] = None, 
-                   schedule: Optional["Schedule"] = None) -> bool:
+                   schedule: Optional["Schedule"] = None, status: Optional[TaskStatus] = None,
+                   last_executed: Optional[datetime] = None, next_execution: Optional[datetime] = None,
+                   retry_count: Optional[int] = None) -> bool:
         """
         Update an existing task.
         
@@ -126,6 +128,18 @@ class TaskManager(ITaskManager):
             task.schedule = schedule
             # Recalculate next execution time if schedule changed
             task.update_next_execution()
+        
+        if status is not None:
+            task.status = status
+        
+        if last_executed is not None:
+            task.last_executed = last_executed
+        
+        if next_execution is not None:
+            task.next_execution = next_execution
+        
+        if retry_count is not None:
+            task.retry_count = retry_count
         
         # Validate the updated task
         if not self.validate_task(task):
