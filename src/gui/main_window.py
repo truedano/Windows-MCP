@@ -43,8 +43,8 @@ class MainWindow:
         # Initialize window
         self._setup_window()
         self._create_menu_bar()
-        self._create_main_layout()
         self._create_status_bar()
+        self._create_main_layout()
         
         # Bind events
         self._bind_events()
@@ -212,9 +212,7 @@ class MainWindow:
             # Configure responsive layout
             self.navigation_frame.configure_responsive_layout(window_width)
             
-            # Update page manager layout if needed
-            if self.page_manager:
-                self.page_manager.update_layout(window_width, window_height)
+            # Note: PageManager doesn't need layout updates as it uses pack with expand=True
     
     def _on_window_close(self):
         """Handle window close event."""
@@ -244,7 +242,13 @@ class MainWindow:
     def _on_task_saved_from_menu(self, task):
         """Handle task save from menu dialog."""
         try:
-            self.task_manager.create_task(task)
+            self.task_manager.create_task(
+                name=task.name,
+                target_app=task.target_app,
+                action_type=task.action_type,
+                action_params=task.action_params,
+                schedule=task.schedule
+            )
             self.set_status(f"任務 '{task.name}' 已建立")
         except Exception as e:
             messagebox.showerror("錯誤", f"無法儲存任務:\n{str(e)}")
@@ -439,7 +443,8 @@ Windows應用程式排程控制GUI
         Args:
             message: Status message to display
         """
-        self.status_text.set(message)
+        if hasattr(self, 'status_text') and self.status_text:
+            self.status_text.set(message)
     
     def set_connection_status(self, status: str):
         """

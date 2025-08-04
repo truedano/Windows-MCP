@@ -708,6 +708,50 @@ class LogManager:
         except Exception as e:
             self.logger.error(f"Error during log cleanup: {e}")
             return {'success': False, 'error': str(e)}
+    
+    def log(self, level, message: str, details: Optional[Dict[str, Any]] = None) -> None:
+        """
+        Log a message with specified level.
+        
+        Args:
+            level: Log level (LogLevel enum or string)
+            message: Log message
+            details: Optional additional details
+        """
+        try:
+            # Convert level to logging level
+            if hasattr(level, 'value'):
+                # Handle LogLevel enum
+                level_name = level.value.upper()
+            else:
+                # Handle string level
+                level_name = str(level).upper()
+            
+            # Map to standard logging levels
+            level_mapping = {
+                'DEBUG': logging.DEBUG,
+                'INFO': logging.INFO,
+                'WARNING': logging.WARNING,
+                'WARN': logging.WARNING,
+                'ERROR': logging.ERROR,
+                'CRITICAL': logging.CRITICAL,
+                'FATAL': logging.CRITICAL
+            }
+            
+            log_level = level_mapping.get(level_name, logging.INFO)
+            
+            # Format message with details
+            if details:
+                formatted_message = f"{message} | Details: {details}"
+            else:
+                formatted_message = message
+            
+            # Log using standard logger
+            self.logger.log(log_level, formatted_message)
+            
+        except Exception as e:
+            # Fallback to basic logging
+            self.logger.error(f"Error in log method: {e} | Original message: {message}")
 
 
 # Global log manager instance

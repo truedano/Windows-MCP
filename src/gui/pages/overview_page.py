@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Tuple, Optional
 
 from src.gui.page_manager import BasePage
-from src.models.statistics_models import SystemStatistics, ActivityItem, SystemStatus, ExecutionStatistics
+from src.models.statistics import SystemStatistics, ActivityItem, SystemStatus
 
 
 class OverviewPage(BasePage):
@@ -223,112 +223,6 @@ class OverviewPage(BasePage):
         else:
             return str(value)
     
-    def _create_recent_activity_section(self):
-        """Create recent activity section."""
-        activity_frame = ttk.Frame(self.frame)
-        activity_frame.pack(fill=tk.BOTH, expand=True, pady=(0, 25))
-        
-        # Section title
-        title_label = ttk.Label(
-            activity_frame,
-            text="Recent Activity",
-            font=("Segoe UI", 14, "bold")
-        )
-        title_label.pack(anchor=tk.W, pady=(0, 10))
-        
-        # Activity list frame
-        list_frame = ttk.LabelFrame(activity_frame, padding=10)
-        list_frame.pack(fill=tk.BOTH, expand=True)
-        
-        # Create activity list
-        self.activity_listbox = tk.Listbox(
-            list_frame,
-            font=("Consolas", 10),
-            height=6,
-            selectmode=tk.SINGLE,
-            activestyle="none"
-        )
-        
-        # Scrollbar for activity list
-        scrollbar = ttk.Scrollbar(list_frame, orient=tk.VERTICAL)
-        self.activity_listbox.config(yscrollcommand=scrollbar.set)
-        scrollbar.config(command=self.activity_listbox.yview)
-        
-        # Pack activity list and scrollbar
-        self.activity_listbox.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        
-        # Populate activity list
-        self._populate_activity_list()
-    
-    def _populate_activity_list(self):
-        """Populate the activity list with recent activities."""
-        self.activity_listbox.delete(0, tk.END)
-        
-        for time, task, status in self.recent_activities:
-            status_symbol = "✓" if status == "Success" else "✗"
-            status_color = "#107c10" if status == "Success" else "#d83b01"
-            
-            activity_text = f"{time} {task} - {status_symbol} {status}"
-            self.activity_listbox.insert(tk.END, activity_text)
-            
-            # Color coding would require custom listbox implementation
-            # For now, using text symbols
-    
-    def _create_system_status_section(self):
-        """Create system status section."""
-        status_frame = ttk.Frame(self.frame)
-        status_frame.pack(fill=tk.X)
-        
-        # Section title
-        title_label = ttk.Label(
-            status_frame,
-            text="System Status",
-            font=("Segoe UI", 14, "bold")
-        )
-        title_label.pack(anchor=tk.W, pady=(0, 10))
-        
-        # Status items frame
-        items_frame = ttk.LabelFrame(status_frame, padding=15)
-        items_frame.pack(fill=tk.X)
-        
-        # Status items
-        status_items = [
-            ("Scheduler Engine", self.system_status["scheduler_engine"]),
-            ("Windows-MCP", self.system_status["windows_mcp"]),
-            ("Log Recording", self.system_status["log_recording"]),
-            ("Next Task", self.system_status["next_task"])
-        ]
-        
-        for i, (label, status) in enumerate(status_items):
-            item_frame = ttk.Frame(items_frame)
-            item_frame.pack(fill=tk.X, pady=3)
-            
-            # Status indicator
-            if status in ["Running", "Connected", "Enabled"]:
-                indicator = "●"
-                color = "#107c10"
-            else:
-                indicator = "○"
-                color = "#666666"
-            
-            # Label
-            label_text = ttk.Label(
-                item_frame,
-                text=f"{label}:",
-                font=("Segoe UI", 10),
-                width=20
-            )
-            label_text.pack(side=tk.LEFT)
-            
-            # Status
-            status_text = ttk.Label(
-                item_frame,
-                text=f"{indicator} {status}",
-                font=("Segoe UI", 10),
-                foreground=color
-            )
-            status_text.pack(side=tk.LEFT)
     
     def _create_fallback_statistics(self):
         """Create fallback statistics display."""
@@ -397,23 +291,17 @@ class OverviewPage(BasePage):
             recent_activities = self._get_recent_activities()
             system_status = self._get_system_status()
             
-            # Create execution statistics object
-            exec_stats = ExecutionStatistics(
+            # Create statistics object using the correct model structure
+            statistics = SystemStatistics(
+                active_tasks=active_tasks,
                 total_executions=execution_stats.get("total", 0),
                 successful_executions=execution_stats.get("successful", 0),
                 failed_executions=execution_stats.get("failed", 0),
-                average_duration=execution_stats.get("average_duration", timedelta(0)),
-                most_frequent_errors=execution_stats.get("frequent_errors", [])
-            )
-            
-            # Create statistics object
-            statistics = SystemStatistics(
-                active_tasks=active_tasks,
-                total_tasks=execution_stats.get("total", 0),
-                scheduler_uptime=self._get_system_uptime(),
-                last_execution_time=execution_stats.get("last_execution", datetime.now()),
-                next_execution_time=execution_stats.get("next_execution", datetime.now()),
-                execution_stats=exec_stats
+                success_rate=execution_stats.get("success_rate", 0.0),
+                recent_activities=recent_activities,
+                system_status=system_status,
+                uptime=self._get_system_uptime(),
+                last_updated=datetime.now()
             )
             
             return statistics
@@ -489,6 +377,11 @@ class OverviewPage(BasePage):
                     next_task_name = next_task.name
                     next_task_time = next_task.next_execution
             
+            # Format next task info
+            next_task_info = "無排程任務"
+            if next_task_name and next_task_time:
+                next_task_info = f"{next_task_name} ({next_task_time.strftime('%H:%M')})"
+            
             return SystemStatus(
                 scheduler_running=scheduler_running,
                 windows_mcp_connected=True,  # Assume connected for now
@@ -503,7 +396,10 @@ class OverviewPage(BasePage):
             return SystemStatus(
                 scheduler_running=False,
                 windows_mcp_connected=False,
-                logging_enabled=True
+                logging_enabled=True,
+                next_task_name=None,
+                next_task_time=None,
+                active_tasks_count=0
             )
     
     def _get_system_uptime(self) -> timedelta:
@@ -517,22 +413,7 @@ class OverviewPage(BasePage):
     
     def _get_default_statistics(self) -> SystemStatistics:
         """Get default statistics when data is unavailable."""
-        default_exec_stats = ExecutionStatistics(
-            total_executions=0,
-            successful_executions=0,
-            failed_executions=0,
-            average_duration=timedelta(0),
-            most_frequent_errors=[]
-        )
-        
-        return SystemStatistics(
-            active_tasks=0,
-            total_tasks=0,
-            scheduler_uptime=timedelta(0),
-            last_execution_time=datetime.now(),
-            next_execution_time=datetime.now(),
-            execution_stats=default_exec_stats
-        )
+        return SystemStatistics.create_empty()
     
     def _update_statistics_display(self, statistics: SystemStatistics):
         """Update statistics panel display."""

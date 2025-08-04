@@ -215,10 +215,24 @@ class SchedulesPage(BasePage):
         try:
             if task.id in [t.id for t in self.task_manager.get_all_tasks()]:
                 # Update existing task
-                self.task_manager.update_task(task.id, task)
+                self.task_manager.update_task(
+                    task.id,
+                    name=task.name,
+                    target_app=task.target_app,
+                    action_type=task.action_type,
+                    action_params=task.action_params,
+                    schedule=task.schedule,
+                    status=task.status
+                )
             else:
                 # Create new task
-                self.task_manager.create_task(task)
+                self.task_manager.create_task(
+                    name=task.name,
+                    target_app=task.target_app,
+                    action_type=task.action_type,
+                    action_params=task.action_params,
+                    schedule=task.schedule
+                )
         except Exception as e:
             from tkinter import messagebox
             messagebox.showerror("Error", f"Failed to save task:\n{str(e)}")

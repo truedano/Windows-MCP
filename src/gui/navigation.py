@@ -317,7 +317,7 @@ class NavigationFrame:
             page_id: Target page ID
         """
         # Convert shortcut to Tkinter format
-        tk_shortcut = shortcut.replace("Ctrl", "Control")
+        tk_shortcut = shortcut.replace("Ctrl+", "Control-").replace("Ctrl", "Control")
         
         def shortcut_handler(event):
             self.switch_to_page(page_id)

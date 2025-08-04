@@ -21,10 +21,25 @@ class TaskManager(ITaskManager):
     according to the design specifications.
     """
     
-    def __init__(self):
-        """Initialize the task manager."""
+    def __init__(self, storage=None):
+        """
+        Initialize the task manager.
+        
+        Args:
+            storage: Optional task storage instance
+        """
         self._tasks: Dict[str, Task] = {}
-        self._task_storage = None  # Will be injected when storage layer is implemented
+        self._task_storage = storage
+        
+        # Load existing tasks from storage if provided
+        if storage:
+            try:
+                existing_tasks = storage.load_all_tasks()
+                for task in existing_tasks:
+                    self._tasks[task.id] = task
+            except Exception:
+                # Storage might be empty or not yet initialized
+                pass
     
     def create_task(self, name: str, target_app: str, action_type: ActionType, 
                    action_params: Dict[str, any], schedule: "Schedule") -> str:
@@ -381,8 +396,8 @@ class TaskManager(ITaskManager):
         """
         self._task_storage = storage
         
-        # Load existing tasks from storage
-        if storage:
+        # Load existing tasks from storage only if we don't have any tasks yet
+        if storage and not self._tasks:
             try:
                 existing_tasks = storage.load_all_tasks()
                 for task in existing_tasks:

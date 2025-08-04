@@ -1001,6 +1001,76 @@ class LogStorage(ILogStorage):
         except Exception as e:
             self.logger.error(f"Error restoring from backup: {e}")
             return False
+    
+    # Implementation of IStorage abstract methods
+    def save(self, data: Any) -> bool:
+        """
+        Save data to storage (generic interface implementation).
+        
+        Args:
+            data: Data to save (expected to be ExecutionLog)
+            
+        Returns:
+            True if save was successful
+        """
+        if isinstance(data, ExecutionLog):
+            return self.save_log(data)
+        else:
+            self.logger.error(f"Unsupported data type for save: {type(data)}")
+            return False
+    
+    def load(self) -> Any:
+        """
+        Load data from storage (generic interface implementation).
+        
+        Returns:
+            List of all logs in cache
+        """
+        with self._lock:
+            return list(self._log_cache.values())
+    
+    def delete(self, identifier: str) -> bool:
+        """
+        Delete data by identifier (generic interface implementation).
+        
+        Args:
+            identifier: Log ID to delete
+            
+        Returns:
+            True if deletion was successful
+        """
+        with self._lock:
+            try:
+                if identifier in self._log_cache:
+                    log = self._log_cache[identifier]
+                    del self._log_cache[identifier]
+                    self._index.remove_log(log)
+                    
+                    # Rewrite log files
+                    self._rewrite_log_files()
+                    
+                    self.logger.info(f"Deleted log with ID: {identifier}")
+                    return True
+                else:
+                    self.logger.warning(f"Log with ID {identifier} not found")
+                    return False
+                    
+            except Exception as e:
+                self.logger.error(f"Error deleting log {identifier}: {e}")
+                return False
+    
+    def exists(self, identifier: str) -> bool:
+        """
+        Check if data exists (generic interface implementation).
+        
+        Args:
+            identifier: Log ID to check
+            
+        Returns:
+            True if log exists
+        """
+        with self._lock:
+            return identifier in self._log_cache
 
 
 # Global log storage instance
