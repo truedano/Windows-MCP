@@ -9,6 +9,7 @@ from typing import Dict, Any, Optional
 from src.gui.page_manager import BasePage
 from src.core.config_manager import get_config_manager, ConfigObserver
 from src.models.config import AppConfig
+import logging
 
 
 class SettingsPage(BasePage, ConfigObserver):
@@ -20,6 +21,7 @@ class SettingsPage(BasePage, ConfigObserver):
         self.config_manager = get_config_manager()
         self.config_manager.add_observer(self)
         self._updating = False
+        self.logger = logging.getLogger(__name__)
         
         # Widget references
         self.schedule_frequency_widget: Optional[Any] = None
@@ -253,16 +255,45 @@ class SettingsPage(BasePage, ConfigObserver):
             self._updating = False
     
     def _save_settings(self) -> None:
-        """Save all settings."""
+        """
+        Save all settings with comprehensive validation and error handling.
+        """
         try:
-            # Validate all widgets
+            # Step 1: Validate all settings
             if not self._validate_all_settings():
-                messagebox.showerror("錯誤", "設定驗證失敗，請檢查輸入值")
+                return  # Validation errors already shown
+            
+            # Step 2: Collect settings from all widgets
+            updates = self._collect_all_settings()
+            if not updates:
+                messagebox.showwarning("警告", "沒有設定需要儲存")
                 return
             
-            # Collect settings from all widgets
-            updates = {}
+            # Step 3: Apply settings with rollback capability
+            old_config = self.config_manager.get_config()
+            success = self._apply_settings_with_rollback(updates)
             
+            if success:
+                # Step 4: Apply immediate changes (restart services if needed)
+                self._apply_immediate_changes(updates, old_config)
+                messagebox.showinfo("成功", "設定已儲存並應用")
+            else:
+                messagebox.showerror("錯誤", "無法儲存設定，已回復到原始狀態")
+                
+        except Exception as e:
+            self.logger.error(f"Error saving settings: {e}")
+            messagebox.showerror("錯誤", f"儲存設定時發生錯誤: {e}")
+    
+    def _collect_all_settings(self) -> Dict[str, Any]:
+        """
+        Collect all settings from widgets.
+        
+        Returns:
+            Dict containing all current settings
+        """
+        updates = {}
+        
+        try:
             # Schedule frequency
             if self.schedule_frequency_widget:
                 updates["schedule_check_frequency"] = self.schedule_frequency_widget.get_frequency()
@@ -299,18 +330,164 @@ class SettingsPage(BasePage, ConfigObserver):
             if "debug_mode" in self.additional_widgets:
                 updates["debug_mode"] = self.additional_widgets["debug_mode"].get()
             
-            # Apply updates
+            return updates
+            
+        except Exception as e:
+            self.logger.error(f"Error collecting settings: {e}")
+            return {}
+    
+    def _apply_settings_with_rollback(self, updates: Dict[str, Any]) -> bool:
+        """
+        Apply settings with rollback capability.
+        
+        Args:
+            updates: Settings to apply
+            
+        Returns:
+            bool: True if all settings applied successfully
+        """
+        # Store original values for rollback
+        original_values = {}
+        applied_keys = []
+        
+        try:
+            # Apply each setting
             for key, value in updates.items():
-                self.config_manager.set_setting(key, value)
+                original_values[key] = self.config_manager.get_setting(key)
+                if self.config_manager.set_setting(key, value, save_immediately=False):
+                    applied_keys.append(key)
+                else:
+                    raise ValueError(f"Failed to set {key} to {value}")
             
             # Save configuration
             if self.config_manager.save_config():
-                messagebox.showinfo("成功", "設定已儲存")
+                self.logger.info(f"Successfully applied {len(applied_keys)} settings")
+                return True
             else:
-                messagebox.showerror("錯誤", "無法儲存設定")
+                raise ValueError("Failed to save configuration")
                 
         except Exception as e:
-            messagebox.showerror("錯誤", f"儲存設定時發生錯誤: {e}")
+            self.logger.error(f"Error applying settings, rolling back: {e}")
+            
+            # Rollback applied settings
+            for key in applied_keys:
+                if key in original_values:
+                    self.config_manager.set_setting(key, original_values[key], save_immediately=False)
+            
+            return False
+    
+    def _apply_immediate_changes(self, updates: Dict[str, Any], old_config) -> None:
+        """
+        Apply changes that require immediate action.
+        
+        Args:
+            updates: Applied settings
+            old_config: Previous configuration
+        """
+        try:
+            restart_required = []
+            
+            # Check for settings that require service restart
+            critical_settings = [
+                "schedule_check_frequency",
+                "log_recording_enabled", 
+                "debug_mode"
+            ]
+            
+            for setting in critical_settings:
+                if setting in updates:
+                    old_value = getattr(old_config, setting, None)
+                    new_value = updates[setting]
+                    if old_value != new_value:
+                        restart_required.append(setting)
+            
+            # Notify about restart requirements
+            if restart_required:
+                restart_msg = "以下設定變更需要重新啟動服務才能生效：\n\n"
+                restart_msg += "\n".join(f"• {self._get_setting_display_name(setting)}" for setting in restart_required)
+                restart_msg += "\n\n是否要立即重新啟動相關服務？"
+                
+                if messagebox.askyesno("重新啟動服務", restart_msg):
+                    self._restart_services(restart_required)
+            
+        except Exception as e:
+            self.logger.error(f"Error applying immediate changes: {e}")
+    
+    def _restart_services(self, settings: List[str]) -> None:
+        """
+        Restart services affected by setting changes.
+        
+        Args:
+            settings: List of changed settings
+        """
+        try:
+            # Import scheduler engine if available
+            from src.core.scheduler_engine import get_scheduler_engine
+            
+            scheduler = get_scheduler_engine()
+            
+            if "schedule_check_frequency" in settings:
+                # Restart scheduler with new frequency
+                if hasattr(scheduler, 'restart'):
+                    scheduler.restart()
+                    self.logger.info("Scheduler restarted with new frequency")
+            
+            if "log_recording_enabled" in settings or "debug_mode" in settings:
+                # Reconfigure logging
+                if hasattr(scheduler, 'reconfigure_logging'):
+                    scheduler.reconfigure_logging()
+                    self.logger.info("Logging reconfigured")
+            
+        except ImportError:
+            self.logger.warning("Scheduler engine not available for restart")
+        except Exception as e:
+            self.logger.error(f"Error restarting services: {e}")
+            messagebox.showwarning("警告", f"重新啟動服務時發生錯誤: {e}")
+    
+    def _get_setting_display_name(self, setting_key: str) -> str:
+        """
+        Get display name for setting key.
+        
+        Args:
+            setting_key: Internal setting key
+            
+        Returns:
+            User-friendly display name
+        """
+        display_names = {
+            "schedule_check_frequency": "排程檢查頻率",
+            "log_recording_enabled": "日誌記錄",
+            "debug_mode": "除錯模式",
+            "notifications_enabled": "通知設定",
+            "max_retry_attempts": "最大重試次數"
+        }
+        return display_names.get(setting_key, setting_key)
+    
+    def _create_temp_config(self) -> Optional[AppConfig]:
+        """
+        Create temporary config for validation.
+        
+        Returns:
+            Temporary AppConfig instance or None if creation fails
+        """
+        try:
+            current_config = self.config_manager.get_config()
+            updates = self._collect_all_settings()
+            
+            # Create a copy of current config
+            temp_config_dict = current_config.to_dict()
+            
+            # Apply updates
+            for key, value in updates.items():
+                if key in temp_config_dict:
+                    temp_config_dict[key] = value
+            
+            # Create and return temporary config
+            return AppConfig.from_dict(temp_config_dict)
+            
+        except Exception as e:
+            self.logger.error(f"Error creating temporary config: {e}")
+            return None
     
     def _reset_settings(self) -> None:
         """Reset all settings to defaults."""
@@ -362,32 +539,68 @@ class SettingsPage(BasePage, ConfigObserver):
             messagebox.showerror("錯誤", f"匯入設定時發生錯誤: {e}")
     
     def _validate_all_settings(self) -> bool:
-        """Validate all settings."""
+        """
+        Validate all settings before saving.
+        
+        Returns:
+            bool: True if all settings are valid
+        """
+        validation_errors = []
+        
         try:
             # Validate schedule frequency
-            if self.schedule_frequency_widget and not self.schedule_frequency_widget.validate():
-                return False
+            if self.schedule_frequency_widget:
+                if hasattr(self.schedule_frequency_widget, 'validate'):
+                    if not self.schedule_frequency_widget.validate():
+                        validation_errors.append("排程檢查頻率設定無效")
+                else:
+                    # Fallback validation
+                    frequency = self.schedule_frequency_widget.get_frequency()
+                    if not (1 <= frequency <= 3600):  # 1 second to 1 hour
+                        validation_errors.append("排程檢查頻率必須在 1-3600 秒之間")
             
             # Validate notification settings
-            if self.notification_options_widget and not self.notification_options_widget.validate():
-                return False
+            if self.notification_options_widget:
+                if hasattr(self.notification_options_widget, 'validate'):
+                    if not self.notification_options_widget.validate():
+                        validation_errors.append("通知設定無效")
             
             # Validate logging settings
-            if self.log_recording_widget and not self.log_recording_widget.validate():
-                return False
+            if self.log_recording_widget:
+                if hasattr(self.log_recording_widget, 'validate'):
+                    if not self.log_recording_widget.validate():
+                        validation_errors.append("日誌記錄設定無效")
+                else:
+                    # Fallback validation
+                    log_settings = self.log_recording_widget.get_settings()
+                    retention_days = log_settings.get("retention_days", 30)
+                    if not (1 <= retention_days <= 365):
+                        validation_errors.append("日誌保留天數必須在 1-365 天之間")
             
             # Validate additional settings
             if "max_retry_attempts" in self.additional_widgets:
                 try:
                     retry_attempts = int(self.additional_widgets["max_retry_attempts"].get())
                     if not (0 <= retry_attempts <= 10):
-                        return False
+                        validation_errors.append("最大重試次數必須在 0-10 次之間")
                 except ValueError:
-                    return False
+                    validation_errors.append("最大重試次數必須是有效的數字")
+            
+            # Create a temporary config to validate overall consistency
+            temp_config = self._create_temp_config()
+            if temp_config and not temp_config.validate():
+                validation_errors.append("整體設定配置無效")
+            
+            # Show validation errors if any
+            if validation_errors:
+                error_message = "設定驗證失敗：\n\n" + "\n".join(f"• {error}" for error in validation_errors)
+                messagebox.showerror("驗證錯誤", error_message)
+                return False
             
             return True
             
-        except Exception:
+        except Exception as e:
+            messagebox.showerror("驗證錯誤", f"驗證設定時發生錯誤: {e}")
             return False
     
     def refresh_content(self) -> None:
