@@ -94,6 +94,9 @@ class SchedulesPage(BasePage):
             on_task_deleted=self._on_task_operation_completed,
             on_task_executed=self._on_task_operation_completed
         )
+        
+        # Set up task list double-click callback for navigation
+        self.task_list_widget.tree.bind("<Double-1>", self._on_task_double_click)
     
     def refresh_content(self) -> None:
         """Refresh page content (called on each activation)."""
@@ -153,3 +156,39 @@ class SchedulesPage(BasePage):
                         self.task_detail_widget.display_task(task)
                 else:
                     self.task_detail_widget.display_multiple_tasks(valid_ids)
+    
+    def _on_task_double_click(self, event) -> None:
+        """Handle double-click on task item to navigate to detail page."""
+        item = self.task_list_widget.tree.selection()[0] if self.task_list_widget.tree.selection() else None
+        if item and self.task_list_widget.tree.item(item)["values"]:
+            task_id = self.task_list_widget.tree.item(item)["values"][0]
+            self._navigate_to_detail_page(task_id)
+    
+    def _navigate_to_detail_page(self, task_id: str) -> None:
+        """Navigate to the schedule detail page."""
+        # Get the page manager from parent
+        if hasattr(self.parent, 'winfo_toplevel'):
+            root = self.parent.winfo_toplevel()
+            # Find the main window instance
+            for widget in root.winfo_children():
+                if hasattr(widget, 'page_manager'):
+                    page_manager = widget.page_manager
+                    if page_manager:
+                        # Get the detail page
+                        detail_page = page_manager.get_page("ScheduleDetail")
+                        if detail_page:
+                            # Set up navigation callbacks
+                            detail_page.set_navigation_callbacks(
+                                on_back=lambda: page_manager.switch_to_page("Schedules"),
+                                on_edit=self._edit_task_from_detail
+                            )
+                            # Load the task and switch to detail page
+                            if detail_page.load_task(task_id):
+                                page_manager.switch_to_page("ScheduleDetail")
+                    break
+    
+    def _edit_task_from_detail(self, task_id: str) -> None:
+        """Handle edit request from detail page."""
+        # TODO: Implement task editing dialog
+        from tkinter import messagebox
+        messagebox.showinfo("Edit Task", f"Task editing dialog will be implemented in the next phase.\n\nEditing task: {task_id}")
