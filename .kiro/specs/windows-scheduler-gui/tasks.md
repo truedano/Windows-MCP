@@ -197,7 +197,12 @@
   - 建立Back和Edit按鈕的導航功能
   - _需求: 3.1, 3.2, 5.1, 5.2_
 
-- [ ] 8.2 實作排程建立/編輯對話框
+- [x] 8.2 實作排程建立/編輯對話框
+
+
+
+
+
   - 建立ScheduleDialog類別，包含所有必要的輸入欄位
   - 實作TriggerTimeWidget支援多種觸發時間類型
   - 建立ConditionalTriggerWidget支援條件觸發設定

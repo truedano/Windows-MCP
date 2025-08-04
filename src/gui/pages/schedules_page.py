@@ -189,6 +189,37 @@ class SchedulesPage(BasePage):
     
     def _edit_task_from_detail(self, task_id: str) -> None:
         """Handle edit request from detail page."""
-        # TODO: Implement task editing dialog
-        from tkinter import messagebox
-        messagebox.showinfo("Edit Task", f"Task editing dialog will be implemented in the next phase.\n\nEditing task: {task_id}")
+        try:
+            from src.gui.dialogs.schedule_dialog import ScheduleDialog
+            
+            task = self.task_manager.get_task(task_id)
+            if not task:
+                from tkinter import messagebox
+                messagebox.showerror("Error", f"Task not found: {task_id}")
+                return
+            
+            # Create and show the schedule dialog with existing task
+            dialog = ScheduleDialog(self.frame, task=task, on_save=self._on_task_saved)
+            result = dialog.show()
+            
+            if result:
+                # Task was updated successfully, refresh the page
+                self.refresh_content()
+                
+        except Exception as e:
+            from tkinter import messagebox
+            messagebox.showerror("Error", f"Failed to edit task:\n{str(e)}")
+    
+    def _on_task_saved(self, task) -> None:
+        """Handle task save from dialog."""
+        try:
+            if task.id in [t.id for t in self.task_manager.get_all_tasks()]:
+                # Update existing task
+                self.task_manager.update_task(task.id, task)
+            else:
+                # Create new task
+                self.task_manager.create_task(task)
+        except Exception as e:
+            from tkinter import messagebox
+            messagebox.showerror("Error", f"Failed to save task:\n{str(e)}")
+            raise

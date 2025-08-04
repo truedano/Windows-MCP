@@ -267,17 +267,32 @@ class ControlButtonsWidget(ttk.Frame):
         else:
             self.progress_bar.pack_forget()
     
+    def _on_task_saved(self, task: Task) -> None:
+        """Handle task save from dialog."""
+        try:
+            if task.id in [t.id for t in self.task_manager.get_all_tasks()]:
+                # Update existing task
+                self.task_manager.update_task(task.id, task)
+            else:
+                # Create new task
+                self.task_manager.create_task(task)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save task:\n{str(e)}")
+            raise
+    
     def _create_new_task(self) -> None:
         """Create a new task."""
         try:
-            # TODO: Implement task creation dialog
-            result = messagebox.showinfo(
-                "New Task",
-                "Task creation dialog will be implemented in the next phase.\n\nThis will include:\n• Task name and description\n• Target application selection\n• Action type and parameters\n• Schedule configuration\n• Validation and preview"
-            )
+            from src.gui.dialogs.schedule_dialog import ScheduleDialog
             
-            if self.on_task_created:
-                self.on_task_created()
+            # Create and show the schedule dialog
+            dialog = ScheduleDialog(self, on_save=self._on_task_saved)
+            result = dialog.show()
+            
+            if result:
+                # Task was created successfully
+                if self.on_task_created:
+                    self.on_task_created()
                 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to create new task:\n{str(e)}")
@@ -295,14 +310,16 @@ class ControlButtonsWidget(ttk.Frame):
             return
         
         try:
-            # TODO: Implement task editing dialog
-            result = messagebox.showinfo(
-                "Edit Task",
-                f"Task editing dialog will be implemented in the next phase.\n\nEditing task: {task.name}\n\nThis will include:\n• Modify task properties\n• Update schedule settings\n• Change action parameters\n• Validation and preview"
-            )
+            from src.gui.dialogs.schedule_dialog import ScheduleDialog
             
-            if self.on_task_updated:
-                self.on_task_updated()
+            # Create and show the schedule dialog with existing task
+            dialog = ScheduleDialog(self, task=task, on_save=self._on_task_saved)
+            result = dialog.show()
+            
+            if result:
+                # Task was updated successfully
+                if self.on_task_updated:
+                    self.on_task_updated()
                 
         except Exception as e:
             messagebox.showerror("Error", f"Failed to edit task:\n{str(e)}")
