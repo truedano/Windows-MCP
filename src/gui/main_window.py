@@ -146,6 +146,7 @@ class MainWindow:
         """Switch to the default page."""
         if self.navigation_frame:
             self.navigation_frame.switch_to_page("Overview")
+            self.set_status("歡迎使用 Windows 排程控制 GUI")
     
     def _on_page_change(self, page_id: str):
         """
@@ -206,7 +207,14 @@ class MainWindow:
         if event.widget == self.root and self.navigation_frame:
             # Update navigation layout based on window width
             window_width = self.root.winfo_width()
+            window_height = self.root.winfo_height()
+            
+            # Configure responsive layout
             self.navigation_frame.configure_responsive_layout(window_width)
+            
+            # Update page manager layout if needed
+            if self.page_manager:
+                self.page_manager.update_layout(window_width, window_height)
     
     def _on_window_close(self):
         """Handle window close event."""
@@ -218,28 +226,105 @@ class MainWindow:
     
     def _on_new_task(self):
         """Handle new task creation."""
-        # TODO: Implement task creation dialog
-        messagebox.showinfo("新增任務", "任務建立功能將在後續實作")
+        try:
+            from src.gui.dialogs.schedule_dialog import ScheduleDialog
+            
+            # Create and show the schedule dialog
+            dialog = ScheduleDialog(self.root, on_save=self._on_task_saved_from_menu)
+            result = dialog.show()
+            
+            if result:
+                self.set_status("新任務已建立")
+                # Switch to schedules page to show the new task
+                self.switch_to_page("Schedules")
+                
+        except Exception as e:
+            messagebox.showerror("錯誤", f"無法建立新任務:\n{str(e)}")
+    
+    def _on_task_saved_from_menu(self, task):
+        """Handle task save from menu dialog."""
+        try:
+            self.task_manager.create_task(task)
+            self.set_status(f"任務 '{task.name}' 已建立")
+        except Exception as e:
+            messagebox.showerror("錯誤", f"無法儲存任務:\n{str(e)}")
+            raise
     
     def _on_import_config(self):
         """Handle configuration import."""
-        # TODO: Implement config import
-        messagebox.showinfo("匯入設定", "設定匯入功能將在後續實作")
+        try:
+            from tkinter import filedialog
+            from src.core.config_manager import get_config_manager
+            import json
+            
+            # Ask user to select config file
+            file_path = filedialog.askopenfilename(
+                title="選擇設定檔案",
+                filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+            )
+            
+            if file_path:
+                config_manager = get_config_manager()
+                
+                # Load and validate config file
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    config_data = json.load(f)
+                
+                # Import configuration
+                config_manager.import_config(config_data)
+                
+                messagebox.showinfo("匯入成功", "設定已成功匯入")
+                self.set_status("設定匯入完成")
+                
+        except Exception as e:
+            messagebox.showerror("匯入失敗", f"無法匯入設定:\n{str(e)}")
     
     def _on_export_config(self):
         """Handle configuration export."""
-        # TODO: Implement config export
-        messagebox.showinfo("匯出設定", "設定匯出功能將在後續實作")
+        try:
+            from tkinter import filedialog
+            from src.core.config_manager import get_config_manager
+            import json
+            from datetime import datetime
+            
+            # Ask user where to save config file
+            file_path = filedialog.asksaveasfilename(
+                title="儲存設定檔案",
+                defaultextension=".json",
+                filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+                initialname=f"scheduler_config_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            )
+            
+            if file_path:
+                config_manager = get_config_manager()
+                
+                # Export configuration
+                config_data = config_manager.export_config()
+                
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    json.dump(config_data, f, indent=2, ensure_ascii=False)
+                
+                messagebox.showinfo("匯出成功", f"設定已匯出至:\n{file_path}")
+                self.set_status("設定匯出完成")
+                
+        except Exception as e:
+            messagebox.showerror("匯出失敗", f"無法匯出設定:\n{str(e)}")
     
     def _on_preferences(self):
         """Handle preferences dialog."""
-        # TODO: Implement preferences dialog
-        messagebox.showinfo("偏好設定", "偏好設定功能將在後續實作")
+        # Switch to settings page
+        self.switch_to_page("Settings")
+        self.set_status("已開啟設定頁面")
     
     def _on_refresh(self):
         """Handle refresh action."""
-        self.status_text.set("正在重新整理...")
-        self.root.after(1000, lambda: self.status_text.set("就緒"))
+        self.set_status("正在重新整理...")
+        
+        # Refresh current page content
+        self.refresh_current_page()
+        
+        # Update status after refresh
+        self.root.after(500, lambda: self.set_status("重新整理完成"))
     
     def _on_toggle_fullscreen(self):
         """Toggle fullscreen mode."""
@@ -248,13 +333,70 @@ class MainWindow:
     
     def _on_system_info(self):
         """Show system information."""
-        # TODO: Implement system info dialog
-        messagebox.showinfo("系統資訊", "系統資訊功能將在後續實作")
+        try:
+            import platform
+            import psutil
+            from src.utils.constants import APP_NAME, APP_VERSION
+            
+            # Gather system information
+            system_info = f"""
+{APP_NAME} v{APP_VERSION}
+
+系統資訊:
+作業系統: {platform.system()} {platform.release()}
+處理器: {platform.processor()}
+Python版本: {platform.python_version()}
+記憶體使用: {psutil.virtual_memory().percent:.1f}%
+磁碟使用: {psutil.disk_usage('/').percent:.1f}%
+
+應用程式狀態:
+任務數量: {len(self.task_manager.get_all_tasks())}
+當前頁面: {self.get_current_page()}
+            """.strip()
+            
+            messagebox.showinfo("系統資訊", system_info)
+            
+        except Exception as e:
+            # Fallback system info without psutil
+            basic_info = f"""
+{APP_NAME} v{APP_VERSION}
+
+基本資訊:
+作業系統: {platform.system()} {platform.release()}
+Python版本: {platform.python_version()}
+任務數量: {len(self.task_manager.get_all_tasks())}
+當前頁面: {self.get_current_page()}
+            """.strip()
+            
+            messagebox.showinfo("系統資訊", basic_info)
     
     def _on_clean_logs(self):
         """Handle log cleanup."""
-        # TODO: Implement log cleanup
-        messagebox.showinfo("清理日誌", "日誌清理功能將在後續實作")
+        try:
+            from src.storage.log_storage import get_log_storage
+            from datetime import datetime, timedelta
+            
+            # Ask for confirmation
+            result = messagebox.askyesno(
+                "清理日誌", 
+                "確定要清理30天前的舊日誌嗎？\n此操作無法復原。"
+            )
+            
+            if result:
+                log_storage = get_log_storage()
+                cutoff_date = datetime.now() - timedelta(days=30)
+                
+                # Clean old logs
+                deleted_count = log_storage.delete_logs(cutoff_date)
+                
+                messagebox.showinfo(
+                    "清理完成", 
+                    f"已清理 {deleted_count} 筆舊日誌記錄"
+                )
+                self.set_status(f"已清理 {deleted_count} 筆日誌")
+                
+        except Exception as e:
+            messagebox.showerror("錯誤", f"清理日誌時發生錯誤:\n{str(e)}")
     
     def _on_help(self):
         """Show help documentation."""
