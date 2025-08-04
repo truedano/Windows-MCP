@@ -213,8 +213,9 @@ def scrape_tool(url:str)->str:
     return f'Scraped the contents of the entire webpage:\n{content}'
 
 if __name__ == "__main__":
-    # Check if GUI mode is requested
-    if len(sys.argv) > 1 and sys.argv[1] == "--gui":
-        gui_main()
-    else:
+    # Check if MCP server mode is requested
+    if len(sys.argv) > 1 and sys.argv[1] == "--mcp":
         mcp.run()
+    else:
+        # Default to GUI mode
+        gui_main()
