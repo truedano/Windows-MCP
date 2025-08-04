@@ -14,7 +14,7 @@ from src.utils.constants import (
 )
 from src.gui.navigation import NavigationFrame
 from src.gui.page_manager import PageManager
-from src.gui.pages import OverviewPage, SchedulesPage, ScheduleDetailPage, LogsPage, SettingsPage, HelpPage
+from src.gui.pages import OverviewPage, SchedulesPage, ScheduleDetailPage, LogsPage, SettingsPage, HelpPage, AppsPage
 from src.core.task_manager import TaskManager
 from src.storage.task_storage import TaskStorage
 
@@ -137,6 +137,7 @@ class MainWindow:
         self.page_manager.register_page(SchedulesPage, task_manager=self.task_manager)
         # Register ScheduleDetailPage with task_manager parameter
         self.page_manager.register_page(ScheduleDetailPage, task_manager=self.task_manager)
+        self.page_manager.register_page(AppsPage)
         self.page_manager.register_page(LogsPage)
         self.page_manager.register_page(SettingsPage)
         self.page_manager.register_page(HelpPage)

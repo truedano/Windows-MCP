@@ -180,16 +180,22 @@ class NavigationFrame:
                 shortcut="Ctrl+2"
             ),
             NavigationItem(
+                page_id="Apps",
+                display_name="應用程式",
+                description="監控和控制當前運行的Windows應用程式",
+                shortcut="Ctrl+3"
+            ),
+            NavigationItem(
                 page_id="Logs",
                 display_name="執行記錄",
                 description="查看任務執行歷史和日誌",
-                shortcut="Ctrl+3"
+                shortcut="Ctrl+4"
             ),
             NavigationItem(
                 page_id="Settings",
                 display_name="系統設定",
                 description="配置應用程式設定和偏好",
-                shortcut="Ctrl+4"
+                shortcut="Ctrl+5"
             ),
             NavigationItem(
                 page_id="Help",

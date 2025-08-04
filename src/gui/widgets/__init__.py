@@ -9,6 +9,9 @@ from .trigger_time_widget import TriggerTimeWidget
 from .conditional_trigger_widget import ConditionalTriggerWidget
 from .action_type_widget import ActionTypeWidget
 from .execution_preview_widget import ExecutionPreviewWidget
+from .app_list_widget import AppListWidget
+from .app_detail_widget import AppDetailWidget
+from .app_monitor_panel import AppMonitorPanel
 
 __all__ = [
     'TaskListWidget', 
@@ -17,5 +20,8 @@ __all__ = [
     'TriggerTimeWidget',
     'ConditionalTriggerWidget',
     'ActionTypeWidget',
-    'ExecutionPreviewWidget'
+    'ExecutionPreviewWidget',
+    'AppListWidget',
+    'AppDetailWidget',
+    'AppMonitorPanel'
 ]
