@@ -161,7 +161,7 @@ class SchedulesPage(BasePage):
         """Handle double-click on task item to navigate to detail page."""
         item = self.task_list_widget.tree.selection()[0] if self.task_list_widget.tree.selection() else None
         if item and self.task_list_widget.tree.item(item)["values"]:
-            task_id = self.task_list_widget.tree.item(item)["values"][0]
+            task_id = self.task_list_widget.tree.item(item)["values"][6]
             self._navigate_to_detail_page(task_id)
     
     def _navigate_to_detail_page(self, task_id: str) -> None:
