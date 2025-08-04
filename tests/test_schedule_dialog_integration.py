@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """
-Test script for schedule dialog implementation.
+Integration tests for ScheduleDialog functionality.
+Tests the actual GUI dialog creation and basic operations.
 """
 
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 import tkinter as tk
 from tkinter import ttk
@@ -59,8 +60,8 @@ def test_dialog_creation():
 
 def main():
     """Main test function."""
-    print("Testing Schedule Dialog Implementation...")
-    print("=" * 50)
+    print("ScheduleDialog Integration Tests")
+    print("=" * 35)
     
     # Test imports
     if not test_imports():

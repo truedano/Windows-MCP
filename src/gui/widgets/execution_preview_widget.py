@@ -232,7 +232,17 @@ class ExecutionPreviewWidget(ttk.Frame):
             ActionType.CUSTOM_COMMAND: "執行自訂命令"
         }
         
-        description = action_descriptions.get(action_type, "未知動作")
+        # Handle both enum and string values
+        if hasattr(action_type, 'value'):
+            action_key = action_type
+        else:
+            # Try to convert string to enum
+            try:
+                action_key = ActionType(action_type)
+            except (ValueError, TypeError):
+                action_key = action_type
+        
+        description = action_descriptions.get(action_key, "未知動作")
         content_lines.append((f"  動作類型: {description}", "info"))
         
         # Add parameter details
@@ -327,9 +337,21 @@ class ExecutionPreviewWidget(ttk.Frame):
         action_type = config.get('action_type')
         action_params = config.get('action_params', {})
         
-        if action_type == ActionType.CUSTOM_COMMAND:
+        # Handle both enum and string values for action_type
+        if hasattr(action_type, 'value'):
+            action_type_value = action_type.value
+        else:
+            action_type_value = action_type
+        
+        if action_type_value == ActionType.CUSTOM_COMMAND.value:
             content_lines.append(("  ⚠️ 自訂命令可能對系統造成影響，請謹慎使用", "warning"))
         
+        # Check target app from config
+        target_app = config.get('target_app', '')
+        if target_app.lower() in ['cmd', 'powershell', 'regedit']:
+            content_lines.append(("  ⚠️ 操作系統關鍵應用程式，請確保操作安全", "warning"))
+        
+        # Also check app_name in action_params
         if 'app_name' in action_params:
             app_name = action_params['app_name']
             if app_name.lower() in ['cmd', 'powershell', 'regedit']:

@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-Minimal test for schedule dialog.
+Environment and dependency check for the Windows Scheduler GUI.
+This test verifies that all required modules can be imported correctly.
 """
 
 import sys
 import os
 
 # Add src to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 def test_basic_imports():
     """Test basic imports."""
@@ -104,8 +105,8 @@ def test_dialog_import():
 
 def main():
     """Main test function."""
-    print("Schedule Dialog Implementation Test")
-    print("=" * 40)
+    print("Windows Scheduler GUI - Environment Check")
+    print("=" * 45)
     
     tests = [
         test_basic_imports,
@@ -129,10 +130,10 @@ def main():
     print(f"Results: {passed}/{total} tests passed")
     
     if passed == total:
-        print("✓ All tests passed! Dialog implementation is ready.")
+        print("✓ All tests passed! Environment is ready for development.")
         return True
     else:
-        print("✗ Some tests failed. Check the errors above.")
+        print("✗ Some tests failed. Please check your environment setup.")
         return False
 
 if __name__ == "__main__":
