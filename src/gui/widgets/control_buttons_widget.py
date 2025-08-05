@@ -277,13 +277,20 @@ class ControlButtonsWidget(ttk.Frame):
             if result:
                 messagebox.showinfo("Success", f"Task '{task.name}' executed successfully")
             else:
-                messagebox.showwarning("Warning", f"Task '{task.name}' execution failed")
+                # Get more detailed error information
+                task_after = self.task_manager.get_task(task_id)
+                error_details = f"Task '{task.name}' execution failed"
+                if task_after and hasattr(task_after, 'last_error'):
+                    error_details += f"\nError: {task_after.last_error}"
+                messagebox.showerror("Execution Failed", error_details)
             
             if self.on_task_executed:
                 self.on_task_executed()
                 
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to execute task:\n{str(e)}")
+            import traceback
+            error_trace = traceback.format_exc()
+            messagebox.showerror("Error", f"Failed to execute task:\n{str(e)}\n\nDetails:\n{error_trace}")
     
     def set_callbacks(self, 
                      on_task_created: Optional[Callable[[], None]] = None,

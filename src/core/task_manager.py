@@ -462,19 +462,29 @@ class TaskManager(ITaskManager):
             # Update task status
             task.status = TaskStatus.RUNNING
             
-            # Execute the task (placeholder implementation)
-            # In a real implementation, this would integrate with Windows-MCP
-            print(f"Executing task immediately: {task.name}")
+            # Use the task execution coordinator for proper execution
+            from src.core.task_execution_coordinator import TaskExecutionCoordinator
+            coordinator = TaskExecutionCoordinator(task_manager=self)
             
-            # Simulate execution
-            import time
-            time.sleep(0.1)  # Brief delay to simulate work
+            # Execute the task using the coordinator
+            result = coordinator.execute_task_immediately(task_id, force=True)
             
-            # Mark as completed
-            task.status = TaskStatus.COMPLETED
-            task.mark_executed()
-            
-            return True
+            if result.success:
+                # Mark as completed
+                task.status = TaskStatus.COMPLETED
+                task.mark_executed()
+                print(f"Task execution succeeded: {result.message}")
+                return True
+            else:
+                # Mark as failed
+                task.status = TaskStatus.FAILED
+                task.increment_retry()
+                # Store error details for debugging
+                task.last_error = result.message
+                print(f"Task execution failed: {result.message}")
+                if hasattr(result, 'details') and result.details:
+                    print(f"Error details: {result.details}")
+                return False
             
         except Exception as e:
             task.status = TaskStatus.FAILED

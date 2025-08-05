@@ -53,10 +53,10 @@ class TaskExecutionCoordinator(ConfigObserver):
     - Provides centralized coordination for all task operations
     """
     
-    def __init__(self):
+    def __init__(self, task_manager=None):
         """Initialize the task execution coordinator."""
         # Core component dependencies
-        self.task_manager = get_task_manager()
+        self.task_manager = task_manager or get_task_manager()
         self.scheduler_engine = get_scheduler_engine()
         self.log_manager = get_log_manager()
         self.config_manager = get_config_manager()

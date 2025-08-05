@@ -1071,6 +1071,36 @@ class LogStorage(ILogStorage):
         """
         with self._lock:
             return identifier in self._log_cache
+    
+    def clear_all_logs(self) -> None:
+        """
+        Clear all logs from storage.
+        
+        This method implements the ILogStorage interface requirement.
+        """
+        with self._lock:
+            try:
+                # Clear in-memory cache and index
+                self._log_cache.clear()
+                self._index.clear()
+                
+                # Remove current log file
+                if self.current_log_path.exists():
+                    self.current_log_path.unlink()
+                
+                # Remove all archive files
+                archive_dir = self.logs_dir / "archive"
+                if archive_dir.exists():
+                    for archive_file in archive_dir.glob("*.json"):
+                        archive_file.unlink()
+                    for archive_file in archive_dir.glob("*.json.gz"):
+                        archive_file.unlink()
+                
+                self.logger.info("All logs cleared successfully")
+                
+            except Exception as e:
+                self.logger.error(f"Error clearing all logs: {e}")
+                raise
 
 
 # Global log storage instance

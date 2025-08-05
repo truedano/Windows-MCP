@@ -35,6 +35,7 @@ class Task:
     next_execution: Optional[datetime] = None
     retry_count: int = 0
     max_retries: int = 3
+    last_error: Optional[str] = None
     
     def is_due(self, current_time: Optional[datetime] = None) -> bool:
         """
@@ -131,7 +132,8 @@ class Task:
             'last_executed': self.last_executed.isoformat() if self.last_executed else None,
             'next_execution': self.next_execution.isoformat() if self.next_execution else None,
             'retry_count': self.retry_count,
-            'max_retries': self.max_retries
+            'max_retries': self.max_retries,
+            'last_error': self.last_error
         }
     
     @classmethod
@@ -149,5 +151,6 @@ class Task:
             last_executed=datetime.fromisoformat(data['last_executed']) if data.get('last_executed') else None,
             next_execution=datetime.fromisoformat(data['next_execution']) if data.get('next_execution') else None,
             retry_count=data.get('retry_count', 0),
-            max_retries=data.get('max_retries', 3)
+            max_retries=data.get('max_retries', 3),
+            last_error=data.get('last_error')
         )

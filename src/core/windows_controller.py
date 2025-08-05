@@ -90,18 +90,22 @@ class WindowsController(IWindowsController):
             ExecutionResult: Result of the launch operation
         """
         try:
-            # Use PowerShell to launch application from start menu
-            # This mimics the Windows-MCP Launch-Tool functionality
+            # Use PowerShell to launch application
+            # Try direct launch first, then fallback to Start Apps search
             powershell_cmd = f"""
-            $app = Get-StartApps | Where-Object {{$_.Name -like "*{app_name}*"}} | Select-Object -First 1
-            if ($app) {{
-                Start-Process -FilePath $app.AppID
-                Write-Output "SUCCESS: Launched $($app.Name)"
-            }} else {{
-                # Try direct launch
+            try {{
+                Start-Process "{app_name}" -ErrorAction Stop
+                Write-Output "SUCCESS: Launched {app_name}"
+            }} catch {{
+                # Try to find in Start Apps if direct launch fails
                 try {{
-                    Start-Process "{app_name}"
-                    Write-Output "SUCCESS: Launched {app_name}"
+                    $app = Get-StartApps | Where-Object {{$_.Name -like "*{app_name}*"}} | Select-Object -First 1
+                    if ($app) {{
+                        Start-Process -FilePath $app.AppID -ErrorAction Stop
+                        Write-Output "SUCCESS: Launched $($app.Name)"
+                    }} else {{
+                        Write-Output "ERROR: Could not find or launch {app_name}"
+                    }}
                 }} catch {{
                     Write-Output "ERROR: Could not find or launch {app_name}"
                 }}

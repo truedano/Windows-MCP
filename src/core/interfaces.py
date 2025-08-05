@@ -4,7 +4,7 @@ Core interfaces and abstract base classes for the Windows Scheduler GUI.
 
 from abc import ABC, abstractmethod
 from typing import List, Dict, Any, Optional, TYPE_CHECKING
-from datetime import datetime
+from datetime import datetime, timedelta
 
 if TYPE_CHECKING:
     from ..models.data_models import Task, AppConfig, ExecutionLog, ExecutionResult, App
@@ -263,6 +263,83 @@ class ISchedulerEngine(ABC):
     @abstractmethod
     def is_running(self) -> bool:
         """Check if scheduler is running."""
+        pass
+
+
+class ILogManager(ABC):
+    """Interface for log management operations."""
+
+    @abstractmethod
+    def log_execution(self, task: "Task", result: "ExecutionResult", duration: "timedelta") -> None:
+        """Log task execution."""
+        pass
+
+    @abstractmethod
+    def add_log(self, log: "ExecutionLog") -> None:
+        """Add an execution log entry."""
+        pass
+
+    @abstractmethod
+    def get_logs(self, limit: Optional[int] = None) -> List["ExecutionLog"]:
+        """Get execution logs."""
+        pass
+
+    @abstractmethod
+    def clear_logs(self) -> None:
+        """Clear all logs."""
+        pass
+
+
+class ILogStorage(ABC):
+    """Interface for log storage operations."""
+
+    @abstractmethod
+    def save_log(self, log: "ExecutionLog") -> None:
+        """Save an execution log."""
+        pass
+
+    @abstractmethod
+    def load_logs(self, limit: Optional[int] = None) -> List["ExecutionLog"]:
+        """Load execution logs."""
+        pass
+
+    @abstractmethod
+    def delete_logs(self, cutoff_date: datetime) -> int:
+        """Delete logs older than cutoff date."""
+        pass
+
+    @abstractmethod
+    def clear_all_logs(self) -> None:
+        """Clear all logs."""
+        pass
+
+
+class ITaskStorage(ABC):
+    """Interface for task storage operations."""
+
+    @abstractmethod
+    def save_task(self, task: "Task") -> None:
+        """Save a task."""
+        pass
+
+    @abstractmethod
+    def load_task(self, task_id: str) -> Optional["Task"]:
+        """Load a task by ID."""
+        pass
+
+    @abstractmethod
+    def load_all_tasks(self) -> List["Task"]:
+        """Load all tasks."""
+        pass
+
+    @abstractmethod
+    def delete_task(self, task_id: str) -> None:
+        """Delete a task."""
+        pass
+
+    @abstractmethod
+    def clear_all_tasks(self) -> bool:
+        """Clear all tasks."""
         pass
 
 
