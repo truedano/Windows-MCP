@@ -576,16 +576,17 @@ class Task:
     id: str
     name: str
     target_app: str
-    action_type: ActionType
-    action_params: Dict[str, Any]
+    action_sequence: List[ActionStep]  # 動作序列，取代單一動作
     schedule: Schedule
     status: TaskStatus
     created_at: datetime
     last_executed: Optional[datetime]
     next_execution: Optional[datetime]
+    execution_options: ExecutionOptions  # 執行選項
     
     def is_due(self) -> bool
     def update_next_execution(self)
+    def validate_action_sequence(self) -> bool
 ```
 
 #### 3.2 排程模型 (Schedule)
@@ -620,52 +621,148 @@ class ConditionType(Enum):
     SYSTEM_IDLE = "system_idle"
 ```
 
-#### 3.3 動作類型 (ActionType)
+#### 3.3 動作序列模型 (ActionStep & ExecutionOptions)
+```python
+@dataclass
+class ActionStep:
+    """單一動作步驟"""
+    id: str
+    action_type: ActionType
+    action_params: Dict[str, Any]
+    delay_after: timedelta = timedelta(seconds=1)  # 執行後延遲時間
+    continue_on_error: bool = True  # 失敗時是否繼續執行後續動作
+    description: Optional[str] = None  # 動作描述
+    
+    def validate(self) -> bool
+    def to_dict(self) -> Dict[str, Any]
+    
+@dataclass
+class ExecutionOptions:
+    """執行選項"""
+    stop_on_first_error: bool = False  # 遇到錯誤時是否停止整個序列
+    default_delay_between_actions: timedelta = timedelta(seconds=1)  # 預設動作間延遲
+    max_execution_time: Optional[timedelta] = None  # 最大執行時間
+    retry_failed_actions: bool = False  # 是否重試失敗的動作
+    
+    def to_dict(self) -> Dict[str, Any]
+
+#### 3.4 動作類型 (ActionType) - 完整支援 Windows-MCP 功能
 ```python
 class ActionType(Enum):
+    # 應用程式控制
     LAUNCH_APP = "launch_app"              # 啟動指定的應用程式
     CLOSE_APP = "close_app"                # 關閉指定的應用程式
+    SWITCH_APP = "switch_app"              # 切換到指定應用程式
+    
+    # 視窗操作
     RESIZE_WINDOW = "resize_window"        # 調整視窗大小到指定尺寸
     MOVE_WINDOW = "move_window"            # 移動視窗到指定位置
     MINIMIZE_WINDOW = "minimize_window"    # 最小化視窗
     MAXIMIZE_WINDOW = "maximize_window"    # 最大化視窗
     RESTORE_WINDOW = "restore_window"      # 還原視窗到正常大小
     FOCUS_WINDOW = "focus_window"          # 將視窗帶到前景
+    
+    # 滑鼠操作
     CLICK_ELEMENT = "click_element"        # 點擊視窗內的特定元素
+    DRAG_ELEMENT = "drag_element"          # 拖拽操作從源座標到目標座標
+    MOVE_MOUSE = "move_mouse"              # 移動滑鼠到指定位置
+    SCROLL = "scroll"                      # 滾動操作 (垂直/水平)
+    
+    # 鍵盤操作
     TYPE_TEXT = "type_text"                # 在指定位置輸入文字
     SEND_KEYS = "send_keys"                # 發送鍵盤快捷鍵
+    PRESS_KEY = "press_key"                # 按下單一按鍵
+    
+    # 剪貼簿操作
+    CLIPBOARD_COPY = "clipboard_copy"      # 複製文字到剪貼簿
+    CLIPBOARD_PASTE = "clipboard_paste"    # 從剪貼簿貼上文字
+    
+    # 系統操作
+    GET_DESKTOP_STATE = "get_desktop_state" # 獲取桌面狀態資訊
+    WAIT = "wait"                          # 等待指定時間
+    SCRAPE_WEBPAGE = "scrape_webpage"      # 抓取網頁內容
     CUSTOM_COMMAND = "custom_command"      # 執行自訂PowerShell命令
 ```
 
-**每個動作類型的具體執行說明：**
+**每個動作類型的具體執行說明 (完整對應 Windows-MCP 工具)：**
 
-1. **LAUNCH_APP** - 使用Windows開始功能表啟動應用程式
+### 應用程式控制
+1. **LAUNCH_APP** - 啟動應用程式 (對應 Launch-Tool)
    - 參數：應用程式名稱 (例如: "notepad", "calculator", "chrome")
    - 執行：調用Windows-MCP的launch_tool功能
 
-2. **CLOSE_APP** - 關閉指定的應用程式視窗
+2. **CLOSE_APP** - 關閉應用程式
    - 參數：應用程式名稱
    - 執行：找到對應視窗並發送關閉命令
 
-3. **RESIZE_WINDOW** - 調整視窗大小
+3. **SWITCH_APP** - 切換應用程式 (對應 Switch-Tool)
+   - 參數：應用程式名稱
+   - 執行：調用Windows-MCP的switch_tool功能
+
+### 視窗操作
+4. **RESIZE_WINDOW** - 調整視窗大小 (對應 Resize-Tool)
    - 參數：應用程式名稱、寬度、高度
    - 執行：調用Windows-MCP的resize_tool功能
 
-4. **MOVE_WINDOW** - 移動視窗位置
+5. **MOVE_WINDOW** - 移動視窗位置 (對應 Resize-Tool)
    - 參數：應用程式名稱、X座標、Y座標
    - 執行：調用Windows-MCP的resize_tool功能設定位置
 
-5. **CLICK_ELEMENT** - 點擊視窗內的UI元素
-   - 參數：應用程式名稱、元素座標或元素名稱
+### 滑鼠操作
+6. **CLICK_ELEMENT** - 點擊UI元素 (對應 Click-Tool)
+   - 參數：應用程式名稱、座標、按鈕類型、點擊次數
    - 執行：調用Windows-MCP的click_tool功能
 
-6. **TYPE_TEXT** - 在指定位置輸入文字
-   - 參數：應用程式名稱、目標位置座標、要輸入的文字
-   - 執行：調用Windows-MCP的type_tool功能
+7. **DRAG_ELEMENT** - 拖拽操作 (對應 Drag-Tool)
+   - 參數：應用程式名稱、源座標、目標座標
+   - 執行：調用Windows-MCP的drag_tool功能
 
-7. **SEND_KEYS** - 發送鍵盤快捷鍵
-   - 參數：快捷鍵組合 (例如: ["ctrl", "c"], ["alt", "tab"])
-   - 執行：調用Windows-MCP的shortcut_tool功能
+8. **MOVE_MOUSE** - 移動滑鼠 (對應 Move-Tool)
+   - 參數：目標座標
+   - 執行：調用Windows-MCP的move_tool功能
+
+9. **SCROLL** - 滾動操作 (對應 Scroll-Tool)
+   - 參數：應用程式名稱、座標、方向、類型、滾動次數
+   - 執行：調用Windows-MCP的scroll_tool功能
+
+### 鍵盤操作
+10. **TYPE_TEXT** - 輸入文字 (對應 Type-Tool)
+    - 參數：應用程式名稱、目標位置座標、文字內容、是否清除
+    - 執行：調用Windows-MCP的type_tool功能
+
+11. **SEND_KEYS** - 發送快捷鍵 (對應 Shortcut-Tool)
+    - 參數：快捷鍵組合 (例如: ["ctrl", "c"], ["alt", "tab"])
+    - 執行：調用Windows-MCP的shortcut_tool功能
+
+12. **PRESS_KEY** - 按下單一按鍵 (對應 Key-Tool)
+    - 參數：按鍵名稱
+    - 執行：調用Windows-MCP的key_tool功能
+
+### 剪貼簿操作
+13. **CLIPBOARD_COPY** - 複製到剪貼簿 (對應 Clipboard-Tool copy)
+    - 參數：要複製的文字
+    - 執行：調用Windows-MCP的clipboard_tool功能
+
+14. **CLIPBOARD_PASTE** - 從剪貼簿貼上 (對應 Clipboard-Tool paste)
+    - 參數：應用程式名稱、目標位置
+    - 執行：調用Windows-MCP的clipboard_tool功能
+
+### 系統操作
+15. **GET_DESKTOP_STATE** - 獲取桌面狀態 (對應 State-Tool)
+    - 參數：是否包含視覺截圖
+    - 執行：調用Windows-MCP的state_tool功能
+
+16. **WAIT** - 等待延遲 (對應 Wait-Tool)
+    - 參數：等待秒數
+    - 執行：調用Windows-MCP的wait_tool功能
+
+17. **SCRAPE_WEBPAGE** - 網頁抓取 (對應 Scrape-Tool)
+    - 參數：網頁URL
+    - 執行：調用Windows-MCP的scrape_tool功能
+
+18. **CUSTOM_COMMAND** - 自訂PowerShell命令 (對應 Powershell-Tool)
+    - 參數：PowerShell命令字串
+    - 執行：調用Windows-MCP的powershell_tool功能
 
 ### 4. 資料存取層 (storage/)
 
@@ -918,22 +1015,27 @@ class LogStorage:
 │ [Select Application___________________▼]    │
 │ (例如: Chrome, Notepad, Calculator)         │
 │                                             │
-│ Action Type:                                │
-│ ○ Launch Application (啟動應用程式)          │
-│ ○ Close Application (關閉應用程式)           │
-│ ○ Resize Window (調整視窗大小)              │
-│   Width: [800] Height: [600]               │
-│ ○ Move Window (移動視窗位置)                │
-│   X: [100] Y: [100]                        │
-│ ○ Click Element (點擊視窗元素)              │
-│   Element: [Button Name or Coordinates]    │
-│ ○ Type Text (輸入文字)                      │
-│   Text: [Hello World]                      │
-│   Position: [X: 200, Y: 300]              │
-│ ○ Send Keys (發送快捷鍵)                    │
-│   Keys: [Ctrl+C] [Alt+Tab] [F5]           │
-│ ○ Custom Command (自訂PowerShell命令)       │
-│   Command: [Get-Process | Where-Object...] │
+│ Action Sequence (動作序列):                  │
+│ ┌─────────────────────────────────────────┐ │
+│ │ 1. Launch Application (啟動應用程式)     │ │
+│ │    App: Chrome                          │ │
+│ │    Delay: 2 seconds        [Edit][Del]  │ │
+│ │                                         │ │
+│ │ 2. Resize Window (調整視窗大小)          │ │
+│ │    Size: 1024x768                       │ │
+│ │    Delay: 1 second         [Edit][Del]  │ │
+│ │                                         │ │
+│ │ 3. Click Element (點擊元素)              │ │
+│ │    Position: (100, 200)                 │ │
+│ │    Delay: 0.5 seconds      [Edit][Del]  │ │
+│ └─────────────────────────────────────────┘ │
+│ [Add Action] [Move Up] [Move Down]          │
+│                                             │
+│ Execution Options (執行選項):                │
+│ ☐ Stop on first error (遇錯誤停止)          │
+│ ☐ Retry failed actions (重試失敗動作)       │
+│ Default delay: [1.0] seconds                │
+│ Max execution time: [___] minutes (optional)│
 │                                             │
 │ Trigger Time:                               │
 │ ○ Once at: [2024-01-01] [10:00 PM]        │

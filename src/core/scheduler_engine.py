@@ -367,7 +367,21 @@ class SchedulerEngine(ISchedulerEngine):
         """Execute the specific action for a task."""
         from src.models.action import ActionType
         
-        action_type = task.action_type
+        # Handle both old and new task formats
+        if hasattr(task, 'action_sequence') and task.action_sequence:
+            # New format - execute action sequence
+            from .action_sequence_executor import ActionSequenceExecutor
+            executor = ActionSequenceExecutor(self.windows_controller)
+            return executor.execute_sequence(task.action_sequence, task.execution_options, task.target_app)
+        else:
+            # Fallback for old format (shouldn't happen with current implementation)
+            action_type = getattr(task, 'action_type', None)
+            if action_type is None:
+                return ExecutionResult.failure_result(
+                    operation="execute_task",
+                    target=task.target_app,
+                    message="Task has no action type or action sequence"
+                )
         params = task.action_params
         target = task.target_app
         

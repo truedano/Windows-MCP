@@ -14,6 +14,7 @@ from src.models.action import ActionType, validate_action_params
 from src.gui.widgets.trigger_time_widget import TriggerTimeWidget
 from src.gui.widgets.conditional_trigger_widget import ConditionalTriggerWidget
 from src.gui.widgets.action_type_widget import ActionTypeWidget
+from src.gui.widgets.action_sequence_widget import ActionSequenceWidget
 from src.gui.widgets.execution_preview_widget import ExecutionPreviewWidget
 
 
@@ -55,6 +56,7 @@ class ScheduleDialog:
         self.trigger_time_widget: Optional[TriggerTimeWidget] = None
         self.conditional_trigger_widget: Optional[ConditionalTriggerWidget] = None
         self.action_type_widget: Optional[ActionTypeWidget] = None
+        self.action_sequence_widget: Optional[ActionSequenceWidget] = None
         self.execution_preview_widget: Optional[ExecutionPreviewWidget] = None
         
         # Options variables
@@ -225,10 +227,10 @@ class ScheduleDialog:
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
         
-        # Action type widget
-        self.action_type_widget = ActionTypeWidget(scrollable_frame, 
-                                                 on_change=self._update_preview)
-        self.action_type_widget.pack(fill=tk.X, padx=10, pady=10)
+        # Action sequence widget (new multi-action support)
+        self.action_sequence_widget = ActionSequenceWidget(scrollable_frame, 
+                                                          on_change=self._update_preview)
+        self.action_sequence_widget.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         
         # Bind mouse wheel to canvas
         def _on_mousewheel(event):
@@ -327,8 +329,19 @@ class ScheduleDialog:
             self.conditional_trigger_widget.set_trigger(self.task.schedule.conditional_trigger)
         
         # Load action settings
-        if self.action_type_widget:
-            self.action_type_widget.set_action(self.task.action_type, self.task.action_params)
+        if self.action_sequence_widget:
+            # Load action sequence
+            if hasattr(self.task, 'action_sequence') and self.task.action_sequence:
+                self.action_sequence_widget.set_action_sequence(self.task.action_sequence)
+            elif hasattr(self.task, 'action_type'):
+                # Old format - convert to action sequence
+                from src.models.action_step import ActionStep
+                action_step = ActionStep.create(
+                    action_type=self.task.action_type,
+                    action_params=getattr(self.task, 'action_params', {}),
+                    description=f"{self.task.action_type.value} on {self.task.target_app}"
+                )
+                self.action_sequence_widget.set_action_sequence([action_step])
         
         # Load options
         self.repeat_enabled_var.set(self.task.schedule.repeat_enabled)
@@ -372,11 +385,11 @@ class ScheduleDialog:
                 conditional_trigger = self.conditional_trigger_widget.get_trigger_config()
             
             # Action settings
-            action_config = None
-            if self.action_type_widget:
-                action_config = self.action_type_widget.get_action_config()
+            action_sequence_config = None
+            if self.action_sequence_widget:
+                action_sequence_config = self.action_sequence_widget.get_action_sequence_config()
             
-            if not action_config:
+            if not action_sequence_config:
                 return None
             
             return {
@@ -384,8 +397,7 @@ class ScheduleDialog:
                 'target_app': target_app,
                 'schedule': schedule_config,
                 'conditional_trigger': conditional_trigger,
-                'action_type': action_config['action_type'],
-                'action_params': action_config['action_params'],
+                'action_sequence': action_sequence_config,
                 'options': {
                     'repeat_enabled': self.repeat_enabled_var.get(),
                     'retry_enabled': self.retry_enabled_var.get(),
@@ -403,10 +415,11 @@ class ScheduleDialog:
             messagebox.showerror("驗證錯誤", "請填寫所有必要欄位")
             return False
         
-        # Validate action parameters
-        if not validate_action_params(config['action_type'], config['action_params']):
-            messagebox.showerror("驗證錯誤", "動作參數無效")
-            return False
+        # Validate action sequence
+        for action_config in config['action_sequence']:
+            if not validate_action_params(action_config['action_type'], action_config['action_params']):
+                messagebox.showerror("驗證錯誤", f"動作參數無效: {action_config['action_type'].value}")
+                return False
         
         return True
     
@@ -429,13 +442,26 @@ class ScheduleDialog:
                 conditional_trigger=config.get('conditional_trigger')
             )
             
+            # Create action sequence from config
+            from src.models.action_step import ActionStep, ExecutionOptions
+            
+            action_steps = []
+            for action_config in config['action_sequence']:
+                action_step = ActionStep.create(
+                    action_type=action_config['action_type'],
+                    action_params=action_config['action_params'],
+                    description=f"{action_config['action_type'].value} on {config['target_app']}"
+                )
+                action_steps.append(action_step)
+            
             # Create or update task
             if self.task:
                 # Update existing task
                 self.task.name = config['name']
                 self.task.target_app = config['target_app']
-                self.task.action_type = config['action_type']
-                self.task.action_params = config['action_params']
+                self.task.action_sequence = action_steps
+                if not hasattr(self.task, 'execution_options'):
+                    self.task.execution_options = ExecutionOptions.get_default()
                 self.task.schedule = schedule
                 task = self.task
             else:
@@ -444,10 +470,10 @@ class ScheduleDialog:
                     id=str(uuid.uuid4()),
                     name=config['name'],
                     target_app=config['target_app'],
-                    action_type=config['action_type'],
-                    action_params=config['action_params'],
+                    action_sequence=action_steps,
                     schedule=schedule,
                     status=TaskStatus.PENDING,
+                    execution_options=ExecutionOptions.get_default(),
                     created_at=datetime.now()
                 )
             
@@ -493,12 +519,17 @@ class ScheduleDialog:
         config = self._get_schedule_config()
         if config:
             # Show test information
+            action_info = []
+            for i, action_config in enumerate(config['action_sequence']):
+                action_info.append(f"動作 {i+1}: {action_config['action_type'].value}")
+                action_info.append(f"  參數: {action_config['action_params']}")
+            
             test_info = f"""
 測試配置:
 排程名稱: {config['name']}
 目標應用程式: {config['target_app']}
-動作類型: {config['action_type'].value}
-動作參數: {config['action_params']}
+動作序列:
+{chr(10).join(action_info)}
 
 注意: 這是測試模式，不會實際執行動作。
             """

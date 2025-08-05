@@ -185,6 +185,80 @@ This MCP interacts directly with your Windows operating system to perform action
 - Selecting specific sections of the text in a paragraph, as the MCP is relying on a11y tree. (⌛ Working on it.)
 - `Type-Tool` is meant for typing text, not programming in IDE because of it types program as a whole in a file. (⌛ Working on it.)
 
+## 🎯 GUI Application Features
+
+### Action Sequence Support
+The GUI application now supports **action sequences** - complex automation workflows with multiple sequential actions:
+
+- **Multi-Action Execution**: One schedule can contain multiple consecutive actions
+- **Flexible Delays**: Configure different delay times after each action
+- **Error Handling**: Choose to stop on error or continue execution
+- **Retry Mechanism**: Automatic retry for failed actions
+
+### Complete Windows Automation
+- **Application Control**: Launch, close, switch applications
+- **Window Operations**: Resize, move, minimize, maximize windows
+- **Mouse Operations**: Click, drag, move, scroll
+- **Keyboard Operations**: Text input, hotkeys, single key press
+- **System Operations**: Clipboard, desktop state, wait, web scraping
+
+### Execution Control
+- **Time Control**: Inter-action delays, maximum execution time
+- **Error Strategy**: Stop or continue, retry options
+- **Execution Monitoring**: Detailed execution reports and statistics
+
+### Usage Example
+
+```python
+from src.models.action_step import create_action_sequence
+from src.models.action import ActionType
+from src.core.task_manager import TaskManager
+
+# Create a complete application automation sequence
+sequence = create_action_sequence([
+    (ActionType.LAUNCH_APP, {'app_name': 'notepad'}),
+    (ActionType.RESIZE_WINDOW, {'app_name': 'notepad', 'width': 800, 'height': 600}),
+    (ActionType.TYPE_TEXT, {'app_name': 'notepad', 'text': 'Hello World', 'x': 50, 'y': 50}),
+    (ActionType.SEND_KEYS, {'keys': ['ctrl', 's']}),
+    (ActionType.WAIT, {'duration': 2}),
+    (ActionType.CLOSE_APP, {'app_name': 'notepad'})
+])
+
+# Create task with action sequence
+task_manager = TaskManager()
+task_id = task_manager.create_task_with_sequence(
+    name="Notepad Automation",
+    target_app="notepad",
+    action_sequence=sequence,
+    schedule=schedule,
+    execution_options=execution_options
+)
+```
+
+### GUI Quick Start
+
+1. Clone the repository:
+```bash
+git clone https://github.com/CursorTouch/Windows-MCP.git
+cd Windows-MCP
+```
+
+2. Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+3. Run the GUI application:
+```bash
+python main.py --gui
+```
+
+4. Create your first automation:
+   - Click "File" → "New Task" or use `Ctrl+N`
+   - Fill in task information and configure action sequence
+   - Set trigger conditions and execution options
+   - Click "Save" to create the task
+
 ## 🪪License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

@@ -195,6 +195,49 @@ class TaskDetailWidget(ttk.Frame):
         }
         return action_texts.get(action_type, f"❓ {action_type.value if hasattr(action_type, 'value') else str(action_type)}")
     
+    def _get_action_sequence_info(self, task) -> str:
+        """Get action sequence information text."""
+        try:
+            if not hasattr(task, 'action_sequence') or not task.action_sequence:
+                return "❓ 無動作"
+            
+            action_texts = {
+                ActionType.LAUNCH_APP: "🚀 啟動應用程式",
+                ActionType.CLOSE_APP: "❌ 關閉應用程式",
+                ActionType.RESIZE_WINDOW: "📏 調整視窗大小",
+                ActionType.MOVE_WINDOW: "📍 移動視窗",
+                ActionType.MINIMIZE_WINDOW: "🔽 最小化視窗",
+                ActionType.MAXIMIZE_WINDOW: "🔼 最大化視窗",
+                ActionType.FOCUS_WINDOW: "🎯 聚焦視窗",
+                ActionType.CLICK_ELEMENT: "👆 點擊元素",
+                ActionType.TYPE_TEXT: "⌨️ 輸入文字",
+                ActionType.SEND_KEYS: "🔤 發送快捷鍵",
+                ActionType.CUSTOM_COMMAND: "⚙️ 自訂命令",
+                ActionType.SWITCH_APP: "🔄 切換應用程式",
+                ActionType.DRAG_ELEMENT: "🖱️ 拖拽操作",
+                ActionType.MOVE_MOUSE: "🖱️ 移動滑鼠",
+                ActionType.SCROLL: "📜 滾動操作",
+                ActionType.PRESS_KEY: "⌨️ 按鍵操作",
+                ActionType.CLIPBOARD_COPY: "📋 複製到剪貼簿",
+                ActionType.CLIPBOARD_PASTE: "📋 從剪貼簿貼上",
+                ActionType.GET_DESKTOP_STATE: "🖥️ 獲取桌面狀態",
+                ActionType.WAIT: "⏱️ 等待",
+                ActionType.SCRAPE_WEBPAGE: "🌐 抓取網頁"
+            }
+            
+            if len(task.action_sequence) == 1:
+                # Single action
+                action_type = task.action_sequence[0].action_type
+                return action_texts.get(action_type, f"❓ {action_type.value if hasattr(action_type, 'value') else str(action_type)}")
+            else:
+                # Multiple actions - show first action + count
+                first_action = task.action_sequence[0].action_type
+                first_text = action_texts.get(first_action, str(first_action.value) if hasattr(first_action, 'value') else str(first_action))
+                return f"📋 動作序列: {first_text} + {len(task.action_sequence)-1} 更多"
+                
+        except Exception:
+            return "❓ 未知動作"
+    
     def _get_schedule_type_info(self, schedule_type: ScheduleType) -> str:
         """Get localized schedule type text."""
         schedule_texts = {
@@ -232,8 +275,8 @@ class TaskDetailWidget(ttk.Frame):
         self._create_info_row(section, "Status", status_text, status_color, ("Segoe UI", 10, "bold"))
         
         # Action type
-        action_text = self._get_action_type_info(task.action_type)
-        self._create_info_row(section, "Action Type", action_text)
+        action_text = self._get_action_sequence_info(task)
+        self._create_info_row(section, "Actions", action_text)
         
         self._create_info_row(section, "Created", self._format_datetime(task.created_at))
         self._create_info_row(section, "Retry Count", f"{task.retry_count}/{task.max_retries}")
@@ -287,14 +330,36 @@ class TaskDetailWidget(ttk.Frame):
         history_button.pack(side=tk.LEFT)
     
     def _create_parameters_section(self, task: Task) -> None:
-        """Create action parameters section."""
-        if not task.action_params:
+        """Create action sequence parameters section."""
+        if not hasattr(task, 'action_sequence') or not task.action_sequence:
             return
         
-        section = self._create_section("Action Parameters", "⚙️")
+        section = self._create_section("Action Sequence Details", "📋")
         
-        for key, value in task.action_params.items():
-            # Format value based on type
+        for i, step in enumerate(task.action_sequence):
+            step_frame = ttk.LabelFrame(section, text=f"Step {i+1}: {step.action_type.value}", padding=5)
+            step_frame.pack(fill=tk.X, pady=2)
+            
+            # Show step description if available
+            if step.description:
+                desc_label = ttk.Label(step_frame, text=f"Description: {step.description}", font=("", 9))
+                desc_label.pack(anchor="w")
+            
+            # Show parameters
+            if step.action_params:
+                for key, value in step.action_params.items():
+                    if isinstance(value, (list, dict)):
+                        value_str = str(value)
+                    else:
+                        value_str = str(value)
+                    
+                    param_label = ttk.Label(step_frame, text=f"  {key.replace('_', ' ').title()}: {value_str}", font=("", 8))
+                    param_label.pack(anchor="w")
+            
+            # Show delay
+            if step.delay_after.total_seconds() > 0:
+                delay_label = ttk.Label(step_frame, text=f"  Delay after: {step.delay_after.total_seconds()}s", font=("", 8), foreground="gray")
+                delay_label.pack(anchor="w")
             if isinstance(value, dict):
                 value_text = f"{len(value)} items"
             elif isinstance(value, list):

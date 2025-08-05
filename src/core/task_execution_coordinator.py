@@ -310,8 +310,7 @@ class TaskExecutionCoordinator(ConfigObserver):
             
             # Log successful execution
             duration = datetime.now() - result.timestamp
-            execution_log = ExecutionLog.create_log(task.name, result, duration, task.retry_count)
-            self.log_manager.add_log(execution_log)
+            self.log_manager.log_execution(task, result, duration)
             
             self.logger.info(f"Task executed successfully: {task.name}")
             
@@ -358,8 +357,7 @@ class TaskExecutionCoordinator(ConfigObserver):
             
             # Log failed execution
             duration = datetime.now() - result.timestamp
-            execution_log = ExecutionLog.create_log(task.name, result, duration, task.retry_count)
-            self.log_manager.add_log(execution_log)
+            self.log_manager.log_execution(task, result, duration)
             
         except Exception as e:
             self.logger.error(f"Error handling failed execution: {e}")

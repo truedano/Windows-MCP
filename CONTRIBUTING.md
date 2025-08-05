@@ -135,6 +135,74 @@ pytest tests/
   ```
 - Update README.md for user-facing changes
 
+## GUI Development Guide (GUI 開發指南)
+
+### Architecture Overview (架構概覽)
+
+The GUI application follows a modular architecture with the following key components:
+
+#### Main Window Structure (主視窗結構)
+- **Location**: `src/gui/main_window.py`
+- **Features**: Complete menu bar, unified navigation, status bar, responsive layout
+- **Entry Point**: `src/gui/scheduler_app.py` - handles configuration and lifecycle management
+
+#### Navigation System (導航系統)
+Five main pages following the design specifications:
+1. **Overview** - System statistics and recent activity
+2. **Schedules** - Task management and scheduling
+3. **Apps** - Application monitoring
+4. **Logs** - Execution history and logging
+5. **Settings** - System configuration
+
+#### Key Components (核心組件)
+
+##### Schedule Dialog (排程對話框)
+- **Location**: `src/gui/dialogs/schedule_dialog.py`
+- **Features**: Multi-tab interface for task creation/editing
+- **Tabs**: Basic Info, Schedule Settings, Action Settings, Options, Preview
+
+##### Action Sequence Widget (動作序列組件)
+- **Location**: `src/gui/widgets/action_sequence_widget.py`
+- **Features**: Support for multiple actions, drag-and-drop reordering, validation
+
+##### Execution Preview (執行預覽)
+- **Location**: `src/gui/widgets/execution_preview_widget.py`
+- **Features**: Real-time preview of task execution, timeline estimation
+
+### Development Guidelines (開發指南)
+
+#### Widget Development (組件開發)
+1. Follow the existing widget structure in `src/gui/widgets/`
+2. Implement proper event handling and callbacks
+3. Use consistent styling and layout patterns
+4. Add proper validation and error handling
+
+#### Page Development (頁面開發)
+1. Extend the base page structure in `src/gui/pages/`
+2. Implement the required interface methods
+3. Handle navigation and state management
+4. Ensure responsive design
+
+#### Model Integration (模型整合)
+1. Use the action sequence model for complex automations
+2. Implement proper task validation
+3. Handle backward compatibility with old task formats
+4. Follow the execution options pattern
+
+### Testing GUI Components (GUI 組件測試)
+
+#### Manual Testing
+1. Test all user interactions and workflows
+2. Verify responsive design across different screen sizes
+3. Test keyboard shortcuts and accessibility features
+4. Validate error handling and edge cases
+
+#### Integration Testing
+1. Test task creation and execution workflows
+2. Verify data persistence and loading
+3. Test cross-component communication
+4. Validate schedule execution and monitoring
+
 ## Getting Help
 
 If you need help with your contribution:
@@ -142,5 +210,6 @@ If you need help with your contribution:
 - Open an issue for discussion
 - Reach out to the maintainers
 - Check existing code for examples
+- Refer to the GUI development guide above for component-specific guidance
 
 Thank you for contributing to Windows-MCP!

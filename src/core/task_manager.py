@@ -9,8 +9,11 @@ from datetime import datetime
 from .interfaces import ITaskManager
 from ..models.task import Task, TaskStatus
 from ..models.action import ActionType, validate_action_params
+from ..models.action_step import ActionStep, ExecutionOptions, create_action_sequence
 from ..models.execution import ExecutionResult
 from ..models.schedule import Schedule
+from .windows_controller import get_windows_controller
+from .action_sequence_executor import ActionSequenceExecutor
 
 
 class TaskManager(ITaskManager):
@@ -41,6 +44,69 @@ class TaskManager(ITaskManager):
                 # Storage might be empty or not yet initialized
                 pass
     
+    def create_task_with_sequence(self, name: str, target_app: str, 
+                                 action_sequence: List[ActionStep], 
+                                 schedule: "Schedule",
+                                 execution_options: Optional[ExecutionOptions] = None) -> str:
+        """
+        Create a new task with action sequence.
+        
+        Args:
+            name: Task name
+            target_app: Target application name
+            action_sequence: List of action steps to execute
+            schedule: Schedule configuration
+            execution_options: Execution options (optional)
+            
+        Returns:
+            str: Task ID of the created task
+            
+        Raises:
+            ValueError: If task configuration is invalid
+        """
+        # Generate unique task ID
+        task_id = str(uuid.uuid4())
+        
+        # Use default execution options if not provided
+        if execution_options is None:
+            execution_options = ExecutionOptions.get_default()
+        
+        # Validate action sequence
+        if not action_sequence:
+            raise ValueError("Action sequence cannot be empty")
+        
+        for step in action_sequence:
+            if not step.validate():
+                raise ValueError(f"Invalid action step: {step.id}")
+        
+        # Create task instance
+        task = Task(
+            id=task_id,
+            name=name,
+            target_app=target_app,
+            action_sequence=action_sequence,
+            schedule=schedule,
+            execution_options=execution_options,
+            status=TaskStatus.PENDING,
+            created_at=datetime.now()
+        )
+        
+        # Validate the complete task
+        if not self.validate_task(task):
+            raise ValueError("Task validation failed")
+        
+        # Calculate initial next execution time
+        task.update_next_execution()
+        
+        # Store the task
+        self._tasks[task_id] = task
+        
+        # Persist to storage if available
+        if self._task_storage:
+            self._task_storage.save_task(task)
+        
+        return task_id
+
     def create_task(self, name: str, target_app: str, action_type: ActionType, 
                    action_params: Dict[str, any], schedule: "Schedule") -> str:
         """
@@ -66,14 +132,22 @@ class TaskManager(ITaskManager):
         if not validate_action_params(action_type, action_params):
             raise ValueError(f"Invalid action parameters for {action_type.value}")
         
+        # Convert single action to action sequence for backward compatibility
+        action_step = ActionStep.create(
+            action_type=action_type,
+            action_params=action_params
+        )
+        action_sequence = [action_step]
+        execution_options = ExecutionOptions.get_default()
+        
         # Create task instance
         task = Task(
             id=task_id,
             name=name,
             target_app=target_app,
-            action_type=action_type,
-            action_params=action_params,
+            action_sequence=action_sequence,
             schedule=schedule,
+            execution_options=execution_options,
             status=TaskStatus.PENDING,
             created_at=datetime.now()
         )
@@ -129,15 +203,24 @@ class TaskManager(ITaskManager):
         if target_app is not None:
             task.target_app = target_app
         
-        if action_type is not None:
-            task.action_type = action_type
-        
-        if action_params is not None:
-            # Validate new action parameters
-            current_action_type = action_type if action_type is not None else task.action_type
-            if not validate_action_params(current_action_type, action_params):
-                raise ValueError(f"Invalid action parameters for {current_action_type.value}")
-            task.action_params = action_params
+        if action_type is not None and action_params is not None:
+            # Update action sequence with new action
+            action_step = ActionStep.create(
+                action_type=action_type,
+                action_params=action_params,
+                description=f"{action_type.value} on {task.target_app}"
+            )
+            task.action_sequence = [action_step]
+        elif action_type is not None or action_params is not None:
+            # If only one is provided, update the first action in sequence
+            if task.action_sequence:
+                first_action = task.action_sequence[0]
+                if action_type is not None:
+                    first_action.action_type = action_type
+                if action_params is not None:
+                    if not validate_action_params(first_action.action_type, action_params):
+                        raise ValueError(f"Invalid action parameters for {first_action.action_type.value}")
+                    first_action.action_params = action_params
         
         if schedule is not None:
             task.schedule = schedule

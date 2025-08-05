@@ -151,14 +151,14 @@ class Schedule:
 
 @dataclass
 class Task:
-    """Task definition for scheduled execution."""
+    """Task definition for scheduled execution with action sequence."""
 
     id: str
     name: str
     target_app: str
-    action_type: ActionType
-    action_params: Dict[str, Any]
+    action_sequence: List['ActionStep']  # 動作序列，取代單一動作
     schedule: Schedule
+    execution_options: 'ExecutionOptions'  # 執行選項
     status: TaskStatus = TaskStatus.PENDING
     created_at: datetime = field(default_factory=datetime.now)
     last_executed: Optional[datetime] = None
@@ -176,15 +176,26 @@ class Task:
         """Update next execution time based on schedule."""
         self.next_execution = self.schedule.get_next_execution(datetime.now())
 
+    def validate_action_sequence(self) -> bool:
+        """Validate the action sequence."""
+        if not self.action_sequence or len(self.action_sequence) == 0:
+            return False
+        
+        for step in self.action_sequence:
+            if not step.validate():
+                return False
+        
+        return True
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
         return {
             "id": self.id,
             "name": self.name,
             "target_app": self.target_app,
-            "action_type": self.action_type.value,
-            "action_params": self.action_params,
+            "action_sequence": [step.to_dict() for step in self.action_sequence],
             "schedule": self.schedule.to_dict(),
+            "execution_options": self.execution_options.to_dict(),
             "status": self.status.value,
             "created_at": self.created_at.isoformat(),
             "last_executed": (
@@ -200,13 +211,29 @@ class Task:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Task":
         """Create from dictionary."""
+        # Import here to avoid circular imports
+        from .action_step import ActionStep, ExecutionOptions
+        
+        # Handle backward compatibility for old single-action format
+        if 'action_type' in data and 'action_params' in data:
+            # Convert old format to new action sequence format
+            action_sequence = [ActionStep.create(
+                action_type=ActionType(data['action_type']),
+                action_params=data['action_params']
+            )]
+            execution_options = ExecutionOptions.get_default()
+        else:
+            # New format with action sequence
+            action_sequence = [ActionStep.from_dict(step_data) for step_data in data['action_sequence']]
+            execution_options = ExecutionOptions.from_dict(data.get('execution_options', {}))
+        
         return cls(
             id=data["id"],
             name=data["name"],
             target_app=data["target_app"],
-            action_type=ActionType(data["action_type"]),
-            action_params=data["action_params"],
+            action_sequence=action_sequence,
             schedule=Schedule.from_dict(data["schedule"]),
+            execution_options=execution_options,
             status=TaskStatus(data.get("status", TaskStatus.PENDING.value)),
             created_at=datetime.fromisoformat(data["created_at"]),
             last_executed=(

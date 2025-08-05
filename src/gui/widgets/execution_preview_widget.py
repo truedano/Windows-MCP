@@ -114,7 +114,7 @@ class ExecutionPreviewWidget(ttk.Frame):
                 self._add_conditional_trigger_info(content_lines, config['conditional_trigger'])
             
             # Action information
-            self._add_action_info(content_lines, config['action_type'], config['action_params'])
+            self._add_action_sequence_info(content_lines, config.get('action_sequence', []))
             
             # Options information
             self._add_options_info(content_lines, config.get('options', {}))
@@ -213,9 +213,14 @@ class ExecutionPreviewWidget(ttk.Frame):
         content_lines.append(("  註: 只有在條件滿足時才會執行動作", "warning"))
         content_lines.append(("", "info"))
     
-    def _add_action_info(self, content_lines: List[tuple], action_type, action_params: Dict[str, Any]):
-        """Add action information to preview."""
+    def _add_action_sequence_info(self, content_lines: List[tuple], action_sequence: List[Dict[str, Any]]):
+        """Add action sequence information to preview."""
         content_lines.append(("執行動作:", "subheader"))
+        
+        if not action_sequence:
+            content_lines.append(("  無動作配置", "warning"))
+            content_lines.append(("", "info"))
+            return
         
         action_descriptions = {
             ActionType.LAUNCH_APP: "啟動應用程式",
@@ -232,44 +237,59 @@ class ExecutionPreviewWidget(ttk.Frame):
             ActionType.CUSTOM_COMMAND: "執行自訂命令"
         }
         
-        # Handle both enum and string values
-        if hasattr(action_type, 'value'):
-            action_key = action_type
-        else:
-            # Try to convert string to enum
-            try:
-                action_key = ActionType(action_type)
-            except (ValueError, TypeError):
+        for i, action_config in enumerate(action_sequence):
+            action_type = action_config.get('action_type')
+            action_params = action_config.get('action_params', {})
+            
+            content_lines.append((f"  動作 {i + 1}:", "subheader"))
+            
+            # Handle both enum and string values
+            if hasattr(action_type, 'value'):
                 action_key = action_type
-        
-        description = action_descriptions.get(action_key, "未知動作")
-        content_lines.append((f"  動作類型: {description}", "info"))
-        
-        # Add parameter details
-        if 'app_name' in action_params:
-            content_lines.append((f"  目標應用程式: {action_params['app_name']}", "info"))
-        
-        if 'width' in action_params and 'height' in action_params:
-            content_lines.append((f"  視窗大小: {action_params['width']} x {action_params['height']}", "info"))
-        
-        if 'x' in action_params and 'y' in action_params:
-            if action_type == ActionType.MOVE_WINDOW:
-                content_lines.append((f"  移動位置: ({action_params['x']}, {action_params['y']})", "info"))
-            elif action_type in [ActionType.CLICK_ELEMENT, ActionType.TYPE_TEXT]:
-                content_lines.append((f"  操作位置: ({action_params['x']}, {action_params['y']})", "info"))
-        
-        if 'text' in action_params:
-            content_lines.append((f"  輸入文字: \"{action_params['text']}\"", "info"))
-        
-        if 'keys' in action_params:
-            keys_str = " + ".join(action_params['keys'])
-            content_lines.append((f"  按鍵組合: {keys_str}", "info"))
-        
-        if 'command' in action_params:
-            content_lines.append((f"  PowerShell命令:", "info"))
-            content_lines.append((f"    {action_params['command']}", "info"))
+            else:
+                # Try to convert string to enum
+                try:
+                    action_key = ActionType(action_type)
+                except (ValueError, TypeError):
+                    action_key = action_type
+            
+            description = action_descriptions.get(action_key, "未知動作")
+            content_lines.append((f"    類型: {description}", "info"))
+            
+            # Add parameter details
+            if 'app_name' in action_params:
+                content_lines.append((f"    目標應用程式: {action_params['app_name']}", "info"))
+            
+            if 'width' in action_params and 'height' in action_params:
+                content_lines.append((f"    視窗大小: {action_params['width']} x {action_params['height']}", "info"))
+            
+            if 'x' in action_params and 'y' in action_params:
+                if action_type == ActionType.MOVE_WINDOW:
+                    content_lines.append((f"    移動位置: ({action_params['x']}, {action_params['y']})", "info"))
+                elif action_type in [ActionType.CLICK_ELEMENT, ActionType.TYPE_TEXT]:
+                    content_lines.append((f"    操作位置: ({action_params['x']}, {action_params['y']})", "info"))
+            
+            if 'text' in action_params:
+                content_lines.append((f"    輸入文字: \"{action_params['text']}\"", "info"))
+            
+            if 'keys' in action_params:
+                keys_str = " + ".join(action_params['keys'])
+                content_lines.append((f"    按鍵組合: {keys_str}", "info"))
+            
+            if 'command' in action_params:
+                content_lines.append((f"    PowerShell命令:", "info"))
+                content_lines.append((f"      {action_params['command']}", "info"))
+            
+            if i < len(action_sequence) - 1:
+                content_lines.append(("", "info"))
         
         content_lines.append(("", "info"))
+    
+    def _add_action_info(self, content_lines: List[tuple], action_type, action_params: Dict[str, Any]):
+        """Add single action information to preview (for backward compatibility)."""
+        # Convert single action to sequence format
+        action_sequence = [{'action_type': action_type, 'action_params': action_params}]
+        self._add_action_sequence_info(content_lines, action_sequence)
     
     def _add_options_info(self, content_lines: List[tuple], options: Dict[str, Any]):
         """Add options information to preview."""
@@ -334,8 +354,13 @@ class ExecutionPreviewWidget(ttk.Frame):
         content_lines.append(("注意事項:", "subheader"))
         
         # Check for potential issues
-        action_type = config.get('action_type')
-        action_params = config.get('action_params', {})
+        action_sequence = config.get('action_sequence', [])
+        if action_sequence:
+            action_type = action_sequence[0].get('action_type')
+            action_params = action_sequence[0].get('action_params', {})
+        else:
+            action_type = None
+            action_params = {}
         
         # Handle both enum and string values for action_type
         if hasattr(action_type, 'value'):

@@ -233,6 +233,49 @@ class TaskListWidget(ttk.Frame):
         }
         return action_texts.get(action_type, str(action_type.value) if hasattr(action_type, 'value') else str(action_type))
     
+    def _get_action_sequence_text(self, task) -> str:
+        """Get action sequence summary text."""
+        try:
+            if not hasattr(task, 'action_sequence') or not task.action_sequence:
+                return "無動作"
+            
+            from src.models.action import ActionType
+            
+            action_texts = {
+                ActionType.LAUNCH_APP: "啟動應用程式",
+                ActionType.CLOSE_APP: "關閉應用程式",
+                ActionType.RESIZE_WINDOW: "調整視窗大小",
+                ActionType.MOVE_WINDOW: "移動視窗",
+                ActionType.MINIMIZE_WINDOW: "最小化視窗",
+                ActionType.MAXIMIZE_WINDOW: "最大化視窗",
+                ActionType.FOCUS_WINDOW: "聚焦視窗",
+                ActionType.CLICK_ELEMENT: "點擊元素",
+                ActionType.TYPE_TEXT: "輸入文字",
+                ActionType.SEND_KEYS: "發送快捷鍵",
+                ActionType.CUSTOM_COMMAND: "自訂命令",
+                ActionType.SWITCH_APP: "切換應用程式",
+                ActionType.DRAG_ELEMENT: "拖拽操作",
+                ActionType.MOVE_MOUSE: "移動滑鼠",
+                ActionType.SCROLL: "滾動操作",
+                ActionType.PRESS_KEY: "按鍵操作",
+                ActionType.CLIPBOARD_COPY: "複製到剪貼簿",
+                ActionType.CLIPBOARD_PASTE: "從剪貼簿貼上",
+                ActionType.GET_DESKTOP_STATE: "獲取桌面狀態",
+                ActionType.WAIT: "等待",
+                ActionType.SCRAPE_WEBPAGE: "抓取網頁"
+            }
+            
+            if len(task.action_sequence) == 1:
+                # Single action - show action type
+                action_type = task.action_sequence[0].action_type
+                return action_texts.get(action_type, str(action_type.value) if hasattr(action_type, 'value') else str(action_type))
+            else:
+                # Multiple actions - show summary
+                return f"動作序列 ({len(task.action_sequence)} 步驟)"
+                
+        except Exception:
+            return "未知動作"
+    
     def refresh_tasks(self) -> None:
         """Refresh the task list."""
         try:
@@ -247,7 +290,7 @@ class TaskListWidget(ttk.Frame):
             for task in tasks:
                 status_indicator = self._get_status_indicator(task.status)
                 status_text = self._get_status_text(task.status)
-                action_text = self._get_action_type_text(task.action_type)
+                action_text = self._get_action_sequence_text(task)
                 next_exec = self._format_datetime(task.next_execution)
                 last_exec = self._format_datetime(task.last_executed)
                 

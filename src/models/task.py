@@ -5,9 +5,10 @@ Task model and related enumerations.
 from enum import Enum
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 from .action import ActionType
+from .action_step import ActionStep, ExecutionOptions
 from .schedule import Schedule
 
 
@@ -22,14 +23,14 @@ class TaskStatus(Enum):
 
 @dataclass
 class Task:
-    """Task model representing a scheduled Windows operation."""
+    """Task model representing a scheduled Windows operation with action sequence."""
     id: str
     name: str
     target_app: str
-    action_type: ActionType
-    action_params: Dict[str, Any]
+    action_sequence: List[ActionStep]  # 動作序列，取代單一動作
     schedule: Schedule
     status: TaskStatus
+    execution_options: ExecutionOptions  # 執行選項
     created_at: datetime
     last_executed: Optional[datetime] = None
     next_execution: Optional[datetime] = None
@@ -101,21 +102,43 @@ class Task:
         Returns:
             bool: True if task is valid
         """
-        # Import here to avoid circular imports
-        from .action import validate_action_params
-        
         # Check required fields
         if not all([self.id, self.name, self.target_app]):
             return False
-            
-        # Validate action parameters
-        if not validate_action_params(self.action_type, self.action_params):
+        
+        # Validate action sequence
+        if not self.action_sequence or len(self.action_sequence) == 0:
             return False
-            
+        
+        # Validate each action step
+        for step in self.action_sequence:
+            if not step.validate():
+                return False
+        
         # Check schedule validity
         if not self.schedule:
             return False
+        
+        # Check execution options
+        if not self.execution_options:
+            return False
             
+        return True
+    
+    def validate_action_sequence(self) -> bool:
+        """
+        Validate the action sequence specifically.
+        
+        Returns:
+            bool: True if action sequence is valid
+        """
+        if not self.action_sequence or len(self.action_sequence) == 0:
+            return False
+        
+        for step in self.action_sequence:
+            if not step.validate():
+                return False
+        
         return True
     
     def to_dict(self) -> Dict[str, Any]:
@@ -124,10 +147,10 @@ class Task:
             'id': self.id,
             'name': self.name,
             'target_app': self.target_app,
-            'action_type': self.action_type.value,
-            'action_params': self.action_params,
+            'action_sequence': [step.to_dict() for step in self.action_sequence],
             'schedule': self.schedule.to_dict(),
             'status': self.status.value,
+            'execution_options': self.execution_options.to_dict(),
             'created_at': self.created_at.isoformat(),
             'last_executed': self.last_executed.isoformat() if self.last_executed else None,
             'next_execution': self.next_execution.isoformat() if self.next_execution else None,
@@ -139,14 +162,30 @@ class Task:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'Task':
         """Create task instance from dictionary."""
+        # Import ActionStep at the beginning to avoid scope issues
+        from .action_step import ActionStep
+        
+        # Handle backward compatibility for old single-action format
+        if 'action_type' in data and 'action_params' in data:
+            # Convert old format to new action sequence format
+            action_sequence = [ActionStep.create(
+                action_type=ActionType(data['action_type']),
+                action_params=data['action_params']
+            )]
+            execution_options = ExecutionOptions.get_default()
+        else:
+            # New format with action sequence
+            action_sequence = [ActionStep.from_dict(step_data) for step_data in data['action_sequence']]
+            execution_options = ExecutionOptions.from_dict(data.get('execution_options', {}))
+        
         return cls(
             id=data['id'],
             name=data['name'],
             target_app=data['target_app'],
-            action_type=ActionType(data['action_type']),
-            action_params=data['action_params'],
+            action_sequence=action_sequence,
             schedule=Schedule.from_dict(data['schedule']),
             status=TaskStatus(data['status']),
+            execution_options=execution_options,
             created_at=datetime.fromisoformat(data['created_at']),
             last_executed=datetime.fromisoformat(data['last_executed']) if data.get('last_executed') else None,
             next_execution=datetime.fromisoformat(data['next_execution']) if data.get('next_execution') else None,

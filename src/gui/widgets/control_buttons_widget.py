@@ -139,24 +139,26 @@ class ControlButtonsWidget(ttk.Frame):
         """Handle task save from dialog."""
         try:
             if task.id in [t.id for t in self.task_manager.get_all_tasks()]:
-                # Update existing task
-                self.task_manager.update_task(
-                    task.id,
-                    name=task.name,
-                    target_app=task.target_app,
-                    action_type=task.action_type,
-                    action_params=task.action_params,
-                    schedule=task.schedule,
-                    status=task.status
-                )
+                # Update existing task - replace the entire task in storage
+                existing_task = self.task_manager.get_task(task.id)
+                if existing_task:
+                    existing_task.name = task.name
+                    existing_task.target_app = task.target_app
+                    existing_task.action_sequence = task.action_sequence
+                    existing_task.schedule = task.schedule
+                    existing_task.status = task.status
+                    existing_task.execution_options = task.execution_options
+                    # Save the updated task
+                    if self.task_manager._task_storage:
+                        self.task_manager._task_storage.save_task(existing_task)
             else:
                 # Create new task
-                self.task_manager.create_task(
+                self.task_manager.create_task_with_sequence(
                     name=task.name,
                     target_app=task.target_app,
-                    action_type=task.action_type,
-                    action_params=task.action_params,
-                    schedule=task.schedule
+                    action_sequence=task.action_sequence,
+                    schedule=task.schedule,
+                    execution_options=task.execution_options
                 )
         except Exception as e:
             messagebox.showerror("Error", f"Failed to save task:\n{str(e)}")

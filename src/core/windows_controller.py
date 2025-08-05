@@ -601,6 +601,57 @@ class WindowsController(IWindowsController):
             elif action_type == ActionType.CUSTOM_COMMAND:
                 return self.execute_powershell_command(params.get('command', ''))
             
+            # New action types from Windows-MCP
+            elif action_type == ActionType.SWITCH_APP:
+                return self.focus_window(params.get('app_name', ''))  # Same as focus_window
+            
+            elif action_type == ActionType.DRAG_ELEMENT:
+                return self.drag_element(
+                    params.get('app_name', ''),
+                    params.get('from_x', 0),
+                    params.get('from_y', 0),
+                    params.get('to_x', 0),
+                    params.get('to_y', 0)
+                )
+            
+            elif action_type == ActionType.MOVE_MOUSE:
+                return self.move_mouse(
+                    params.get('x', 0),
+                    params.get('y', 0)
+                )
+            
+            elif action_type == ActionType.SCROLL:
+                return self.scroll(
+                    params.get('app_name', ''),
+                    params.get('x', 0),
+                    params.get('y', 0),
+                    params.get('direction', 'down'),
+                    params.get('scroll_type', 'vertical'),
+                    params.get('wheel_times', 1)
+                )
+            
+            elif action_type == ActionType.PRESS_KEY:
+                return self.press_key(params.get('key', ''))
+            
+            elif action_type == ActionType.CLIPBOARD_COPY:
+                return self.clipboard_copy(params.get('text', ''))
+            
+            elif action_type == ActionType.CLIPBOARD_PASTE:
+                return self.clipboard_paste(
+                    params.get('app_name', ''),
+                    params.get('x', 0),
+                    params.get('y', 0)
+                )
+            
+            elif action_type == ActionType.GET_DESKTOP_STATE:
+                return self.get_desktop_state(params.get('use_vision', False))
+            
+            elif action_type == ActionType.WAIT:
+                return self.wait(params.get('duration', 1))
+            
+            elif action_type == ActionType.SCRAPE_WEBPAGE:
+                return self.scrape_webpage(params.get('url', ''))
+            
             else:
                 return ExecutionResult.failure_result(
                     operation=action_type.value,

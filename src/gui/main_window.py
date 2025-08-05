@@ -242,12 +242,13 @@ class MainWindow:
     def _on_task_saved_from_menu(self, task):
         """Handle task save from menu dialog."""
         try:
-            self.task_manager.create_task(
+            # Use the new create_task_with_sequence method
+            self.task_manager.create_task_with_sequence(
                 name=task.name,
                 target_app=task.target_app,
-                action_type=task.action_type,
-                action_params=task.action_params,
-                schedule=task.schedule
+                action_sequence=task.action_sequence,
+                schedule=task.schedule,
+                execution_options=task.execution_options
             )
             self.set_status(f"任務 '{task.name}' 已建立")
         except Exception as e:

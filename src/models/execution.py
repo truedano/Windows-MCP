@@ -42,14 +42,15 @@ class ExecutionResult:
         )
     
     @classmethod
-    def success_result(cls, operation: str, target: str, message: str = "Operation completed successfully") -> 'ExecutionResult':
+    def success_result(cls, operation: str, target: str, message: str = "Operation completed successfully", details: Optional[Dict[str, Any]] = None) -> 'ExecutionResult':
         """Create a successful execution result."""
         return cls(
             success=True,
             message=message,
             timestamp=datetime.now(),
             operation=operation,
-            target=target
+            target=target,
+            details=details
         )
     
     @classmethod

@@ -314,7 +314,14 @@ class ScheduleInfoWidget(ttk.Frame):
             "CLICK_ELEMENT": "Click Element"
         }
         
-        action_type = task.action_type.value if hasattr(task.action_type, 'value') else str(task.action_type)
+        # Handle both old and new task formats
+        if hasattr(task, 'action_sequence') and task.action_sequence:
+            if len(task.action_sequence) == 1:
+                action_type = task.action_sequence[0].action_type.value
+            else:
+                action_type = f"Action Sequence ({len(task.action_sequence)} steps)"
+        else:
+            action_type = "No actions"
         return action_names.get(action_type, action_type)
     
     def _format_status(self, status: TaskStatus) -> tuple:
