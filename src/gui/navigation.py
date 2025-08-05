@@ -115,8 +115,8 @@ class NavigationFrame:
             font=("Segoe UI", 10, "bold"),
             relief="solid",
             borderwidth=2,
-            background="#0078d4",
-            foreground="white"
+            background="white",
+            foreground="#0078d4"
         )
         
         # Hover state
