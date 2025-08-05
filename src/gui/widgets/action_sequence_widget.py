@@ -68,44 +68,14 @@ class ActionSequenceWidget(ttk.Frame):
     
     def _add_action(self):
         """Add a new action to the sequence."""
-        action_frame = ttk.LabelFrame(self.scrollable_frame, 
-                                    text=f"動作 {len(self.action_widgets) + 1}", 
-                                    padding=10)
-        action_frame.pack(fill=tk.X, pady=(0, 10))
-        
-        # Action controls frame
-        controls_frame = ttk.Frame(action_frame)
-        controls_frame.pack(fill=tk.X, pady=(0, 10))
-        
-        # Remove button (only show if more than one action)
-        remove_btn = ttk.Button(controls_frame, text="移除", 
-                              command=lambda: self._remove_action(len(self.action_widgets)))
-        if len(self.action_widgets) > 0:  # Always allow removal for new actions
-            remove_btn.pack(side=tk.RIGHT)
-        
-        # Move up/down buttons
-        if len(self.action_widgets) > 0:
-            down_btn = ttk.Button(controls_frame, text="↓", width=3,
-                                command=lambda: self._move_action_down(len(self.action_widgets)))
-            down_btn.pack(side=tk.RIGHT, padx=(0, 5))
-            
-            up_btn = ttk.Button(controls_frame, text="↑", width=3,
-                              command=lambda: self._move_action_up(len(self.action_widgets)))
-            up_btn.pack(side=tk.RIGHT, padx=(0, 5))
-        
         # Action type widget
-        action_widget = ActionTypeWidget(action_frame, on_change=self._on_action_change)
-        action_widget.pack(fill=tk.X)
+        action_widget = ActionTypeWidget(None, on_change=self._on_action_change)
         
-        # Store references
+        # Store references first
         self.action_widgets.append(action_widget)
         
-        # Update canvas scroll region
-        self.scrollable_frame.update_idletasks()
-        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-        
-        # Update remove button visibility
-        self._update_remove_buttons()
+        # Rebuild the entire UI to ensure correct indices
+        self._rebuild_ui()
         
         # Notify change
         self._on_action_change()
@@ -113,9 +83,7 @@ class ActionSequenceWidget(ttk.Frame):
     def _remove_action(self, index: int):
         """Remove an action from the sequence."""
         if index < len(self.action_widgets) and len(self.action_widgets) > 1:
-            # Remove widget
-            widget = self.action_widgets[index]
-            widget.master.destroy()
+            # Remove widget from list
             self.action_widgets.pop(index)
             
             # Rebuild the UI to update indices
@@ -156,8 +124,18 @@ class ActionSequenceWidget(ttk.Frame):
         for widget in self.scrollable_frame.winfo_children():
             widget.destroy()
         
-        # Recreate action frames
-        for i, action_widget in enumerate(self.action_widgets):
+        # Store current configurations before rebuilding
+        configs = []
+        for action_widget in self.action_widgets:
+            if hasattr(action_widget, 'get_action_config'):
+                config = action_widget.get_action_config()
+                configs.append(config)
+            else:
+                configs.append(None)
+        
+        # Recreate action frames and widgets
+        new_action_widgets = []
+        for i, config in enumerate(configs):
             action_frame = ttk.LabelFrame(self.scrollable_frame, 
                                         text=f"動作 {i + 1}", 
                                         padding=10)
@@ -169,29 +147,58 @@ class ActionSequenceWidget(ttk.Frame):
             
             # Remove button
             remove_btn = ttk.Button(controls_frame, text="移除", 
-                                  command=lambda idx=i: self._remove_action(idx))
+                                  command=self._create_remove_command(i))
             if len(self.action_widgets) > 1:
                 remove_btn.pack(side=tk.RIGHT)
             
             # Move buttons
             if i < len(self.action_widgets) - 1:
                 down_btn = ttk.Button(controls_frame, text="↓", width=3,
-                                    command=lambda idx=i: self._move_action_down(idx))
+                                    command=self._create_move_down_command(i))
                 down_btn.pack(side=tk.RIGHT, padx=(0, 5))
             
             if i > 0:
                 up_btn = ttk.Button(controls_frame, text="↑", width=3,
-                                  command=lambda idx=i: self._move_action_up(idx))
+                                  command=self._create_move_up_command(i))
                 up_btn.pack(side=tk.RIGHT, padx=(0, 5))
             
-            # Reparent action widget
-            action_widget.pack_forget()
-            action_widget.master = action_frame
+            # Create new action widget
+            action_widget = ActionTypeWidget(action_frame, on_change=self._on_action_change)
             action_widget.pack(fill=tk.X)
+            
+            # Restore configuration if available
+            if config and hasattr(action_widget, 'set_action'):
+                try:
+                    action_widget.set_action(config['action_type'], config['action_params'])
+                except:
+                    pass  # If restoration fails, keep default
+            
+            new_action_widgets.append(action_widget)
+        
+        # Update the action widgets list
+        self.action_widgets = new_action_widgets
         
         # Update canvas scroll region
         self.scrollable_frame.update_idletasks()
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+    
+    def _create_remove_command(self, index: int):
+        """Create a remove command function with proper index capture."""
+        def remove_command():
+            self._remove_action(index)
+        return remove_command
+    
+    def _create_move_up_command(self, index: int):
+        """Create a move up command function with proper index capture."""
+        def move_up_command():
+            self._move_action_up(index)
+        return move_up_command
+    
+    def _create_move_down_command(self, index: int):
+        """Create a move down command function with proper index capture."""
+        def move_down_command():
+            self._move_action_down(index)
+        return move_down_command
     
     def _update_remove_buttons(self):
         """Update visibility of remove buttons."""
