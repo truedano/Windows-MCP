@@ -229,6 +229,15 @@ class Schedule:
             
         return next_execution
     
+    def is_recurring(self) -> bool:
+        """
+        Check if this schedule represents a recurring task.
+        
+        Returns:
+            bool: True if the schedule is recurring, False for one-time execution
+        """
+        return self.schedule_type != ScheduleType.ONCE
+    
     def should_execute(self, current_context: Dict[str, Any]) -> bool:
         """
         Check if the task should execute based on conditions.
