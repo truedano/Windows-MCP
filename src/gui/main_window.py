@@ -52,14 +52,10 @@ class MainWindow:
     def _setup_window(self):
         """Setup main window properties."""
         self.root.title(f"{APP_NAME} v{APP_VERSION}")
-        self.root.geometry(f"{self.config.window_width}x{self.config.window_height}")
         self.root.minsize(MAIN_WINDOW_MIN_WIDTH, MAIN_WINDOW_MIN_HEIGHT)
-        
-        # Center window on screen
-        self.root.update_idletasks()
-        x = (self.root.winfo_screenwidth() // 2) - (self.config.window_width // 2)
-        y = (self.root.winfo_screenheight() // 2) - (self.config.window_height // 2)
-        self.root.geometry(f"{self.config.window_width}x{self.config.window_height}+{x}+{y}")
+
+        # Maximize window
+        self.root.state('zoomed')
         
         # Set window icon (if available)
         try:

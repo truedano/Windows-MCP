@@ -3,7 +3,7 @@ Task list widget implementation.
 """
 
 import tkinter as tk
-from tkinter import ttk
+from tkinter import ttk, font
 from typing import List, Optional, Callable, Set
 from datetime import datetime
 
@@ -77,35 +77,30 @@ class TaskListWidget(ttk.Frame):
         tree_frame.grid_columnconfigure(0, weight=1)
         
         # Create treeview
-        columns = ("name", "target_app", "action_type", "status", "next_execution", "last_executed", "task_id")
+        columns = ("icon", "name", "status", "next_execution", "last_executed", "task_id")
         self.tree = ttk.Treeview(
             tree_frame,
             columns=columns,
-            show="tree headings",
+            show="headings",
             selectmode="extended"
         )
         
         # Configure columns
-        self.tree.heading("#0", text="", anchor="w")
-        self.tree.column("#0", width=30, minwidth=30, stretch=False)
+        self.tree.heading("icon", text="", anchor="center")
+        self.tree.column("icon", width=40, minwidth=40, stretch=False, anchor="center")
         
         self.tree.heading("name", text="Task Name", anchor="w")
-        self.tree.column("name", width=200, minwidth=150)
+        self.tree.column("name", width=200, minwidth=150, anchor="w", stretch=True)
         
-        self.tree.heading("target_app", text="Target App", anchor="w")
-        self.tree.column("target_app", width=150, minwidth=100)
         
-        self.tree.heading("action_type", text="Action Type", anchor="w")
-        self.tree.column("action_type", width=120, minwidth=80)
+        self.tree.heading("status", text="Status", anchor="w")
+        self.tree.column("status", width=80, minwidth=60, anchor="w")
         
-        self.tree.heading("status", text="Status", anchor="center")
-        self.tree.column("status", width=80, minwidth=60)
+        self.tree.heading("next_execution", text="Next Run", anchor="w")
+        self.tree.column("next_execution", width=140, minwidth=100, anchor="w")
         
-        self.tree.heading("next_execution", text="Next Run", anchor="center")
-        self.tree.column("next_execution", width=140, minwidth=100)
-        
-        self.tree.heading("last_executed", text="Last Run", anchor="center")
-        self.tree.column("last_executed", width=140, minwidth=100)
+        self.tree.heading("last_executed", text="Last Run", anchor="w")
+        self.tree.column("last_executed", width=140, minwidth=100, anchor="w")
         
         # Hidden task_id column
         self.tree.heading("task_id", text="")
@@ -142,7 +137,7 @@ class TaskListWidget(ttk.Frame):
     def _on_tree_selection(self, event) -> None:
         """Handle tree selection change."""
         selected_items = self.tree.selection()
-        self.selected_tasks = {self.tree.item(item)["values"][6] for item in selected_items if self.tree.item(item)["values"]}
+        self.selected_tasks = {self.tree.item(item)["values"][5] for item in selected_items if self.tree.item(item)["values"]}
         
         # Update selection label
         count = len(self.selected_tasks)
@@ -152,7 +147,7 @@ class TaskListWidget(ttk.Frame):
             # Get task name for display
             selected_item = next(iter(selected_items)) if selected_items else None
             if selected_item:
-                task_name = self.tree.item(selected_item)["values"][0]  # First value is task name
+                task_name = self.tree.item(selected_item)["values"][1]  # Second value is task name
                 self.selection_label.config(text=f"已選擇: {task_name}")
             else:
                 self.selection_label.config(text="未選擇任務")
@@ -167,7 +162,7 @@ class TaskListWidget(ttk.Frame):
         """Handle double-click on task item."""
         item = self.tree.selection()[0] if self.tree.selection() else None
         if item and self.tree.item(item)["values"]:
-            task_id = self.tree.item(item)["values"][6]
+            task_id = self.tree.item(item)["values"][5]
             # TODO: Implement task detail view or edit dialog
             print(f"Double-clicked task: {task_id}")
     
@@ -298,11 +293,9 @@ class TaskListWidget(ttk.Frame):
                 item_id = self.tree.insert(
                     "",
                     "end",
-                    text=status_indicator,
                     values=(
+                        status_indicator, # Icon column
                         task.name,        # Task Name column
-                        task.target_app,  # Target App column
-                        action_text,      # Action Type column
                         status_text,      # Status column
                         next_exec,        # Next Run column
                         last_exec,        # Last Run column
@@ -321,10 +314,47 @@ class TaskListWidget(ttk.Frame):
             self.selected_tasks.clear()
             self.selection_label.config(text="未選擇任務")
             
+            # Adjust column widths
+            self._adjust_column_widths()
+            
         except Exception as e:
             print(f"Error refreshing tasks: {e}")
             self.count_label.config(text="(載入失敗)")
     
+    def _adjust_column_widths(self) -> None:
+        """Adjust column widths based on content."""
+        # Define which columns should not be auto-adjusted
+        skipped_columns = {"task_id"}
+
+        cols = self.tree["columns"]
+        for col in cols:
+            # Skip columns that should not be adjusted or are stretched
+            if col in skipped_columns or self.tree.column(col, "stretch"):
+                continue
+
+            try:
+                heading_font = font.nametofont("TkHeadingFont")
+            except tk.TclError:
+                heading_font = font.nametofont("TkDefaultFont")
+
+            max_width = heading_font.measure(self.tree.heading(col)["text"])
+
+            for item in self.tree.get_children():
+                cell_value = self.tree.set(item, col)
+                if cell_value:
+                    font_obj = font.nametofont("TkDefaultFont")
+                    max_width = max(max_width, font_obj.measure(str(cell_value)))
+            
+            # Add padding
+            max_width += 20
+
+            # Check minwidth
+            minwidth = self.tree.column(col, "minwidth")
+            if minwidth and max_width < int(minwidth):
+                max_width = int(minwidth)
+
+            self.tree.column(col, width=max_width)
+
     def _apply_status_styling(self, item_id: str, status: TaskStatus) -> None:
         """Apply visual styling based on task status."""
         # Configure tags for different statuses
@@ -353,7 +383,7 @@ class TaskListWidget(ttk.Frame):
         """Select a specific task by ID."""
         for item in self.tree.get_children():
             values = self.tree.item(item)["values"]
-            if values and values[6] == task_id:
+            if values and values[5] == task_id:
                 self.tree.selection_set(item)
                 self.tree.focus(item)
                 self.tree.see(item)
@@ -371,15 +401,16 @@ class TaskListWidget(ttk.Frame):
         """Update the status of a specific task in the list."""
         for item in self.tree.get_children():
             values = self.tree.item(item)["values"]
-            if values and values[6] == task_id:
+            if values and values[5] == task_id:
                 # Update status text and indicator
                 status_text = self._get_status_text(status)
                 status_indicator = self._get_status_indicator(status)
                 
                 # Update values
                 new_values = list(values)
-                new_values[3] = status_text  # Status column (now at index 3)
-                self.tree.item(item, text=status_indicator, values=new_values)
+                new_values[0] = status_indicator # Icon column
+                new_values[2] = status_text      # Status column
+                self.tree.item(item, values=new_values)
                 
                 # Update styling
                 self._apply_status_styling(item, status)
