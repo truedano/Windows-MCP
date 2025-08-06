@@ -427,8 +427,21 @@ class TaskDetailWidget(ttk.Frame):
     
     def _show_execution_history(self, task_id: str) -> None:
         """Show execution history for the task."""
-        # TODO: Implement execution history dialog
-        print(f"Show execution history for task: {task_id}")
+        try:
+            # Get the task to get its name
+            task = self.task_manager.get_task(task_id)
+            if not task:
+                from tkinter import messagebox
+                messagebox.showerror("Error", "Task not found")
+                return
+            
+            # Import and show execution history dialog
+            from src.gui.dialogs.execution_history_dialog import show_execution_history
+            show_execution_history(self, task_id, task.name)
+            
+        except Exception as e:
+            from tkinter import messagebox
+            messagebox.showerror("Error", f"Failed to show execution history: {str(e)}")
     
     def display_task(self, task: Task) -> None:
         """
