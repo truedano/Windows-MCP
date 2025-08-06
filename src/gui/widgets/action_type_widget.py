@@ -84,9 +84,19 @@ class ActionTypeWidget(ttk.Frame):
         # App name frame (used by multiple actions)
         self.app_name_frame = ttk.Frame(self.params_frame)
         ttk.Label(self.app_name_frame, text="應用程式名稱:").pack(anchor=tk.W)
-        app_entry = ttk.Entry(self.app_name_frame, textvariable=self.app_name_var, width=40)
-        app_entry.pack(fill=tk.X, pady=(5, 10))
-        ttk.Label(self.app_name_frame, text="例如: notepad, calculator, chrome", 
+        
+        # Common applications list
+        common_apps = [
+            "notepad", "calculator", "chrome", "firefox", "edge",
+            "explorer", "cmd", "powershell", "winword", "excel",
+            "outlook", "teams", "discord", "spotify", "vlc"
+        ]
+        
+        # Use ComboBox instead of Entry to allow both selection and custom input
+        app_combo = ttk.Combobox(self.app_name_frame, textvariable=self.app_name_var, 
+                                values=common_apps, width=37)
+        app_combo.pack(fill=tk.X, pady=(5, 10))
+        ttk.Label(self.app_name_frame, text="選擇常用應用程式或輸入自訂應用程式名稱", 
                  font=("", 8), foreground="gray").pack(anchor=tk.W)
         
         # Resize window parameters

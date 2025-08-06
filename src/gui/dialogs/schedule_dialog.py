@@ -50,7 +50,6 @@ class ScheduleDialog:
         
         # Initialize widgets
         self.schedule_name_var = tk.StringVar()
-        self.target_app_var = tk.StringVar()
         
         # Widget references
         self.trigger_time_widget: Optional[TriggerTimeWidget] = None
@@ -140,29 +139,6 @@ class ScheduleDialog:
         ttk.Label(name_frame, text="名稱:").pack(anchor=tk.W)
         name_entry = ttk.Entry(name_frame, textvariable=self.schedule_name_var, font=("", 10))
         name_entry.pack(fill=tk.X, pady=(5, 0))
-        
-        # Target application
-        app_frame = ttk.LabelFrame(basic_frame, text="目標應用程式", padding=10)
-        app_frame.pack(fill=tk.X, pady=(0, 10))
-        
-        ttk.Label(app_frame, text="應用程式:").pack(anchor=tk.W)
-        
-        # Combobox with common applications
-        common_apps = [
-            "notepad", "calculator", "chrome", "firefox", "edge",
-            "explorer", "cmd", "powershell", "word", "excel",
-            "outlook", "teams", "zoom", "discord", "spotify"
-        ]
-        
-        app_combo = ttk.Combobox(app_frame, textvariable=self.target_app_var, 
-                                values=common_apps, font=("", 10))
-        app_combo.pack(fill=tk.X, pady=(5, 0))
-        
-        # Help text
-        help_text = ttk.Label(app_frame, 
-                             text="輸入應用程式名稱或從下拉清單選擇常用應用程式",
-                             font=("", 8), foreground="gray")
-        help_text.pack(anchor=tk.W, pady=(5, 0))
     
     def _create_schedule_tab(self):
         """Create the schedule settings tab."""
@@ -310,7 +286,6 @@ class ScheduleDialog:
         
         # Bind variable changes to update preview
         self.schedule_name_var.trace_add("write", lambda *args: self._update_preview())
-        self.target_app_var.trace_add("write", lambda *args: self._update_preview())
     
     def _load_task_data(self):
         """Load task data into the dialog."""
@@ -319,7 +294,6 @@ class ScheduleDialog:
         
         # Load basic info
         self.schedule_name_var.set(self.task.name)
-        self.target_app_var.set(self.task.target_app)
         
         # Load schedule settings
         if self.trigger_time_widget:
@@ -366,9 +340,8 @@ class ScheduleDialog:
         try:
             # Basic info
             name = self.schedule_name_var.get().strip()
-            target_app = self.target_app_var.get().strip()
             
-            if not name or not target_app:
+            if not name:
                 return None
             
             # Schedule settings
@@ -391,6 +364,13 @@ class ScheduleDialog:
             
             if not action_sequence_config:
                 return None
+            
+            # Get target app from first action that has app_name parameter
+            target_app = "未指定"
+            for action_config in action_sequence_config:
+                if 'app_name' in action_config.get('action_params', {}):
+                    target_app = action_config['action_params']['app_name']
+                    break
             
             return {
                 'name': name,
