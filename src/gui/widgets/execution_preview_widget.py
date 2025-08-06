@@ -146,7 +146,9 @@ class ExecutionPreviewWidget(ttk.Frame):
         start_time = schedule_config.get('start_time')
         end_time = schedule_config.get('end_time')
         
-        if schedule_type == ScheduleType.ONCE.value:
+        if schedule_type == ScheduleType.MANUAL.value:
+            content_lines.append(("  類型: 不主動執行", "info"))
+        elif schedule_type == ScheduleType.ONCE.value:
             content_lines.append(("  類型: 一次性執行", "info"))
             if start_time:
                 content_lines.append((f"  執行時間: {start_time.strftime('%Y-%m-%d %H:%M')}", "info"))
@@ -322,7 +324,9 @@ class ExecutionPreviewWidget(ttk.Frame):
             
             now = datetime.now()
             
-            if schedule_type == ScheduleType.ONCE.value:
+            if schedule_type == ScheduleType.MANUAL.value:
+                content_lines.append(("    ⚠️  此排程不會自動執行，需要手動觸發", "warning"))
+            elif schedule_type == ScheduleType.ONCE.value:
                 if start_time > now:
                     time_diff = start_time - now
                     content_lines.append((f"  下次執行: {start_time.strftime('%Y-%m-%d %H:%M')}", "success"))

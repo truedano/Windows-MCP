@@ -241,6 +241,7 @@ class TaskDetailWidget(ttk.Frame):
     def _get_schedule_type_info(self, schedule_type: ScheduleType) -> str:
         """Get localized schedule type text."""
         schedule_texts = {
+            ScheduleType.MANUAL: "🔧 不主動執行",
             ScheduleType.ONCE: "🔂 One Time",
             ScheduleType.DAILY: "📅 Daily",
             ScheduleType.WEEKLY: "📆 Weekly",
@@ -289,7 +290,9 @@ class TaskDetailWidget(ttk.Frame):
         schedule_text = self._get_schedule_type_info(schedule.schedule_type)
         self._create_info_row(section, "Type", schedule_text)
         
-        self._create_info_row(section, "Start Time", self._format_datetime(schedule.start_time))
+        # Only show Start Time for non-MANUAL schedules
+        if schedule.schedule_type != ScheduleType.MANUAL:
+            self._create_info_row(section, "Start Time", self._format_datetime(schedule.start_time))
         
         if schedule.end_time:
             self._create_info_row(section, "End Time", self._format_datetime(schedule.end_time))
@@ -303,8 +306,10 @@ class TaskDetailWidget(ttk.Frame):
             selected_days = [days[i] for i in schedule.days_of_week]
             self._create_info_row(section, "Days of Week", ", ".join(selected_days))
         
-        repeat_text = "Yes" if schedule.repeat_enabled else "No"
-        self._create_info_row(section, "Repeat Enabled", repeat_text)
+        # Only show Repeat Enabled for non-MANUAL schedules
+        if schedule.schedule_type != ScheduleType.MANUAL:
+            repeat_text = "Yes" if schedule.repeat_enabled else "No"
+            self._create_info_row(section, "Repeat Enabled", repeat_text)
     
     def _create_execution_section(self, task: Task) -> None:
         """Create execution information section."""
@@ -314,16 +319,29 @@ class TaskDetailWidget(ttk.Frame):
         last_exec_color = "#28A745" if task.last_executed else "#999999"
         self._create_info_row(section, "Last Executed", last_exec_text, last_exec_color)
         
-        next_exec_text = self._format_datetime(task.next_execution)
-        next_exec_color = "#007ACC" if task.next_execution else "#999999"
-        self._create_info_row(section, "Next Execution", next_exec_text, next_exec_color)
+        # Only show Next Execution for non-MANUAL schedules
+        if task.schedule.schedule_type != ScheduleType.MANUAL:
+            next_exec_text = self._format_datetime(task.next_execution)
+            next_exec_color = "#007ACC" if task.next_execution else "#999999"
+            self._create_info_row(section, "Next Execution", next_exec_text, next_exec_color)
+        
+        # Button frame
+        button_frame = ttk.Frame(section)
+        button_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        # Execute Now button for MANUAL schedules
+        if task.schedule.schedule_type == ScheduleType.MANUAL:
+            execute_button = ttk.Button(
+                button_frame,
+                text="▶️ Execute Now",
+                command=lambda: self._execute_task_now(task.id),
+                style="Accent.TButton"
+            )
+            execute_button.pack(side=tk.LEFT, padx=(0, 10))
         
         # Execution history button
-        history_frame = ttk.Frame(section)
-        history_frame.pack(fill=tk.X, pady=(10, 0))
-        
         history_button = ttk.Button(
-            history_frame,
+            button_frame,
             text="📊 View Execution History",
             command=lambda: self._show_execution_history(task.id)
         )
@@ -370,6 +388,42 @@ class TaskDetailWidget(ttk.Frame):
                 value_text = str(value)
             
             self._create_info_row(section, key.replace("_", " ").title(), value_text)
+    
+    def _execute_task_now(self, task_id: str) -> None:
+        """Execute a manual task immediately."""
+        try:
+            from tkinter import messagebox
+            
+            # Get the task
+            task = self.task_manager.get_task(task_id)
+            if not task:
+                messagebox.showerror("錯誤", "找不到指定的任務")
+                return
+            
+            # Confirm execution for manual tasks
+            if task.schedule.schedule_type == ScheduleType.MANUAL:
+                result = messagebox.askyesno(
+                    "確認執行", 
+                    f"確定要立即執行任務「{task.name}」嗎？\n\n"
+                    f"目標應用程式: {task.target_app}\n"
+                    f"動作: {self._get_action_sequence_info(task)}"
+                )
+                if not result:
+                    return
+            
+            # Execute the task
+            success = self.task_manager.execute_task_immediately(task_id)
+            
+            if success:
+                messagebox.showinfo("執行成功", f"任務「{task.name}」已開始執行")
+                # Refresh the display to show updated execution info
+                self.refresh_current_task()
+            else:
+                messagebox.showerror("執行失敗", f"無法執行任務「{task.name}」")
+                
+        except Exception as e:
+            from tkinter import messagebox
+            messagebox.showerror("執行錯誤", f"執行任務時發生錯誤：{str(e)}")
     
     def _show_execution_history(self, task_id: str) -> None:
         """Show execution history for the task."""

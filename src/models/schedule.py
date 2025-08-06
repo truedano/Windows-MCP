@@ -10,6 +10,7 @@ from typing import Optional, List, Dict, Any
 
 class ScheduleType(Enum):
     """Types of schedule patterns."""
+    MANUAL = "manual"       # 不主動執行
     ONCE = "once"           # 一次性執行
     DAILY = "daily"         # 每日重複
     WEEKLY = "weekly"       # 每週重複
@@ -153,7 +154,9 @@ class Schedule:
         if self.end_time and from_time >= self.end_time:
             return None
             
-        if self.schedule_type == ScheduleType.ONCE:
+        if self.schedule_type == ScheduleType.MANUAL:
+            return None  # Manual schedules don't have automatic execution
+        elif self.schedule_type == ScheduleType.ONCE:
             return self.start_time if from_time < self.start_time else None
         elif self.schedule_type == ScheduleType.DAILY:
             return self._get_next_daily_execution(from_time)
@@ -236,7 +239,7 @@ class Schedule:
         Returns:
             bool: True if the schedule is recurring, False for one-time execution
         """
-        return self.schedule_type != ScheduleType.ONCE
+        return self.schedule_type not in (ScheduleType.MANUAL, ScheduleType.ONCE)
     
     def should_execute(self, current_context: Dict[str, Any]) -> bool:
         """

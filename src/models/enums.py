@@ -18,6 +18,7 @@ class TaskStatus(Enum):
 class ScheduleType(Enum):
     """Schedule type for task execution."""
 
+    MANUAL = "manual"
     ONCE = "once"
     DAILY = "daily"
     WEEKLY = "weekly"

@@ -283,7 +283,9 @@ class ScheduleInfoWidget(ttk.Frame):
         """Format trigger time for display."""
         schedule = task.schedule
         
-        if schedule.schedule_type == ScheduleType.ONCE:
+        if schedule.schedule_type == ScheduleType.MANUAL:
+            return "Manual execution only"
+        elif schedule.schedule_type == ScheduleType.ONCE:
             return f"Once at {schedule.start_time.strftime('%Y-%m-%d %H:%M')}"
         elif schedule.schedule_type == ScheduleType.DAILY:
             return f"Every day at {schedule.start_time.strftime('%H:%M')}"

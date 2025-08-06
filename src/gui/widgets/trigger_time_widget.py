@@ -25,7 +25,7 @@ class TriggerTimeWidget(ttk.Frame):
         self.on_change = on_change
         
         # Variables
-        self.schedule_type_var = tk.StringVar(value=ScheduleType.ONCE.value)
+        self.schedule_type_var = tk.StringVar(value=ScheduleType.MANUAL.value)
         self.start_date_var = tk.StringVar()
         self.start_time_var = tk.StringVar()
         self.end_date_var = tk.StringVar()
@@ -68,6 +68,7 @@ class TriggerTimeWidget(ttk.Frame):
         
         # Radio buttons for schedule types
         types = [
+            (ScheduleType.MANUAL.value, "不主動執行"),
             (ScheduleType.ONCE.value, "一次性執行"),
             (ScheduleType.DAILY.value, "每日重複"),
             (ScheduleType.WEEKLY.value, "每週重複"),
@@ -221,7 +222,7 @@ class TriggerTimeWidget(ttk.Frame):
             self.custom_frame.pack(fill=tk.X)
         
         # Update end time visibility
-        if schedule_type == ScheduleType.ONCE.value:
+        if schedule_type in (ScheduleType.MANUAL.value, ScheduleType.ONCE.value):
             self.end_frame.pack_forget()
         else:
             self.end_frame.pack(fill=tk.X, pady=(0, 10))
@@ -270,7 +271,7 @@ class TriggerTimeWidget(ttk.Frame):
             
             # Parse end time if enabled
             end_time = None
-            if self.has_end_time_var.get() and schedule_type != ScheduleType.ONCE:
+            if self.has_end_time_var.get() and schedule_type not in (ScheduleType.MANUAL.value, ScheduleType.ONCE.value):
                 end_date_str = self.end_date_var.get().strip()
                 end_time_str = self.end_time_var.get().strip()
                 
