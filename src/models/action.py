@@ -3,7 +3,7 @@ Action type definitions for Windows operations.
 """
 
 from enum import Enum
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from dataclasses import dataclass
 
 
@@ -24,7 +24,7 @@ class ActionType(Enum):
     FOCUS_WINDOW = "focus_window"          # 將視窗帶到前景
     
     # 滑鼠操作
-    CLICK_ELEMENT = "click_element"        # 點擊視窗內的特定元素
+    CLICK_ABS = "click_abs"                # 點擊螢幕絕對座標
     DRAG_ELEMENT = "drag_element"          # 拖拽操作從源座標到目標座標
     MOVE_MOUSE = "move_mouse"              # 移動滑鼠到指定位置
     SCROLL = "scroll"                      # 滾動操作 (垂直/水平)
@@ -88,7 +88,6 @@ class WindowControlParams(ActionParams):
 @dataclass
 class ClickElementParams(ActionParams):
     """Parameters for clicking an element."""
-    app_name: str
     x: int
     y: int
 
@@ -200,10 +199,10 @@ def validate_action_params(action_type: ActionType, params: Dict[str, Any]) -> b
             return _validate_resize_window_params(params)
         elif action_type == ActionType.MOVE_WINDOW:
             return _validate_move_window_params(params)
-        elif action_type in [ActionType.MINIMIZE_WINDOW, ActionType.MAXIMIZE_WINDOW, 
+        elif action_type in [ActionType.MINIMIZE_WINDOW, ActionType.MAXIMIZE_WINDOW,
                            ActionType.RESTORE_WINDOW, ActionType.FOCUS_WINDOW]:
             return _validate_window_control_params(params)
-        elif action_type == ActionType.CLICK_ELEMENT:
+        elif action_type == ActionType.CLICK_ABS:
             return _validate_click_element_params(params)
         elif action_type == ActionType.TYPE_TEXT:
             return _validate_type_text_params(params)
@@ -297,13 +296,10 @@ def _validate_window_control_params(params: Dict[str, Any]) -> bool:
 def _validate_click_element_params(params: Dict[str, Any]) -> bool:
     """Validate click element parameters."""
     return (
-        'app_name' in params and
         'x' in params and
         'y' in params and
-        isinstance(params['app_name'], str) and
         isinstance(params['x'], int) and
         isinstance(params['y'], int) and
-        len(params['app_name'].strip()) > 0 and
         params['x'] >= 0 and
         params['y'] >= 0
     )

@@ -154,13 +154,13 @@ class IWindowsController(ABC):
         pass
 
     @abstractmethod
-    def click_element(self, app_name: str, x: int, y: int) -> "ExecutionResult":
-        """Click on element in application window."""
+    def click_abs(self, x: int, y: int) -> "ExecutionResult":
+        """Click on element at absolute screen coordinates."""
         pass
 
     @abstractmethod
     def type_text(self, app_name: str, text: str, x: int, y: int) -> "ExecutionResult":
-        """Type text at specific location in application window."""
+        """Type text at specific absolute screen coordinates."""
         pass
 
     @abstractmethod

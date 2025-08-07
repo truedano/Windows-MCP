@@ -4,7 +4,9 @@ Action type widget for dynamic action configuration.
 
 import tkinter as tk
 from tkinter import ttk
+import threading
 from typing import Optional, Dict, Any, Callable, List
+from pynput import mouse
 
 from src.models.action import ActionType, validate_action_params
 
@@ -22,6 +24,8 @@ class ActionTypeWidget(ttk.Frame):
         """
         super().__init__(parent)
         self.on_change = on_change
+        self.mouse_listener = None
+        self.capture_button = None
         
         # Variables
         self.action_type_var = tk.StringVar(value=ActionType.LAUNCH_APP.value)
@@ -61,7 +65,7 @@ class ActionTypeWidget(ttk.Frame):
             (ActionType.MAXIMIZE_WINDOW.value, "最大化視窗"),
             (ActionType.RESTORE_WINDOW.value, "還原視窗"),
             (ActionType.FOCUS_WINDOW.value, "聚焦視窗"),
-            (ActionType.CLICK_ELEMENT.value, "點擊元素"),
+            (ActionType.CLICK_ABS.value, "點擊絕對座標 (click_abs)"),
             (ActionType.TYPE_TEXT.value, "輸入文字"),
             (ActionType.SEND_KEYS.value, "發送按鍵"),
             (ActionType.CUSTOM_COMMAND.value, "自訂命令")
@@ -99,6 +103,10 @@ class ActionTypeWidget(ttk.Frame):
         ttk.Label(self.app_name_frame, text="選擇常用應用程式或輸入自訂應用程式名稱", 
                  font=("", 8), foreground="gray").pack(anchor=tk.W)
         
+        self.app_name_optional_label = ttk.Label(self.app_name_frame,
+                                                 text="（可選）點擊前聚焦此應用程式",
+                                                 font=("", 8), foreground="blue")
+        
         # Resize window parameters
         self.resize_frame = ttk.Frame(self.params_frame)
         
@@ -134,18 +142,28 @@ class ActionTypeWidget(ttk.Frame):
         # Click element parameters
         self.click_frame = ttk.Frame(self.params_frame)
         
+        top_click_frame = ttk.Frame(self.click_frame)
+        top_click_frame.pack(fill=tk.X, pady=(0, 10))
+
+        self.capture_button = ttk.Button(top_click_frame, text="取得座標", command=self._start_click_capture)
+        self.capture_button.pack(side=tk.LEFT)
+
         click_pos_frame = ttk.Frame(self.click_frame)
         click_pos_frame.pack(fill=tk.X, pady=(0, 10))
         
         ttk.Label(click_pos_frame, text="點擊X座標:").pack(side=tk.LEFT)
-        click_x_spinbox = ttk.Spinbox(click_pos_frame, from_=0, to=9999, 
+        click_x_spinbox = ttk.Spinbox(click_pos_frame, from_=0, to=9999,
                                     textvariable=self.x_var, width=8)
         click_x_spinbox.pack(side=tk.LEFT, padx=(5, 20))
         
         ttk.Label(click_pos_frame, text="點擊Y座標:").pack(side=tk.LEFT)
-        click_y_spinbox = ttk.Spinbox(click_pos_frame, from_=0, to=9999, 
+        click_y_spinbox = ttk.Spinbox(click_pos_frame, from_=0, to=9999,
                                     textvariable=self.y_var, width=8)
         click_y_spinbox.pack(side=tk.LEFT, padx=(5, 0))
+        
+        ttk.Label(self.click_frame,
+                  text="座標為螢幕絕對座標。可選填應用程式名稱以在點擊前聚焦。",
+                  font=("", 8), foreground="gray").pack(anchor=tk.W)
         
         # Type text parameters
         self.type_text_frame = ttk.Frame(self.params_frame)
@@ -221,11 +239,17 @@ class ActionTypeWidget(ttk.Frame):
     
     def _on_action_type_change(self, event=None):
         """Handle action type change."""
+        if self.mouse_listener:
+            self.mouse_listener.stop()
+            self._reset_capture_button()
+
         # Hide all parameter frames
         for frame in [self.app_name_frame, self.resize_frame, self.move_frame,
                      self.click_frame, self.type_text_frame, self.send_keys_frame,
                      self.custom_command_frame]:
             frame.pack_forget()
+        
+        self.app_name_optional_label.pack_forget()
         
         action_type = ActionType(self.action_type_var.get())
         
@@ -243,8 +267,7 @@ class ActionTypeWidget(ttk.Frame):
             self.app_name_frame.pack(fill=tk.X)
             self.move_frame.pack(fill=tk.X)
         
-        elif action_type == ActionType.CLICK_ELEMENT:
-            self.app_name_frame.pack(fill=tk.X)
+        elif action_type == ActionType.CLICK_ABS:
             self.click_frame.pack(fill=tk.X)
         
         elif action_type == ActionType.TYPE_TEXT:
@@ -303,12 +326,8 @@ class ActionTypeWidget(ttk.Frame):
                     'y': self.y_var.get()
                 }
             
-            elif action_type == ActionType.CLICK_ELEMENT:
-                app_name = self.app_name_var.get().strip()
-                if not app_name:
-                    return None
+            elif action_type == ActionType.CLICK_ABS:
                 action_params = {
-                    'app_name': app_name,
                     'x': self.x_var.get(),
                     'y': self.y_var.get()
                 }
@@ -399,3 +418,42 @@ class ActionTypeWidget(ttk.Frame):
         """
         config = self.get_action_config()
         return config is not None
+
+    def _start_click_capture(self):
+        """Start capturing a single mouse click to get coordinates."""
+        if self.mouse_listener:
+            return
+
+        self.capture_button.config(text="點擊螢幕擷取...", state=tk.DISABLED)
+
+        # Run listener in a separate thread to avoid blocking the GUI
+        listener_thread = threading.Thread(target=self._run_listener, daemon=True)
+        listener_thread.start()
+
+    def _run_listener(self):
+        """Runs the pynput mouse listener."""
+        self.mouse_listener = mouse.Listener(on_click=self._on_click)
+        with self.mouse_listener as listener:
+            listener.join()
+
+    def _on_click(self, x, y, button, pressed):
+        """Callback for mouse click event."""
+        if button == mouse.Button.left and pressed:
+            self.x_var.set(x)
+            self.y_var.set(y)
+            
+            # Stop the listener from the main thread
+            self.after(0, self._stop_listener)
+            return False  # Stop listener after one click
+
+    def _stop_listener(self):
+        """Stops the mouse listener and resets the button."""
+        if self.mouse_listener:
+            self.mouse_listener.stop()
+            self.mouse_listener = None
+        self._reset_capture_button()
+
+    def _reset_capture_button(self):
+        """Resets the capture button to its original state."""
+        if self.capture_button:
+            self.capture_button.config(text="取得座標", state=tk.NORMAL)

@@ -580,11 +580,10 @@ class WindowsController(IWindowsController):
             elif action_type == ActionType.FOCUS_WINDOW:
                 return self.focus_window(params.get('app_name', ''))
             
-            elif action_type == ActionType.CLICK_ELEMENT:
-                return self.click_element(
-                    params.get('app_name', ''),
-                    params.get('x', 0),
-                    params.get('y', 0)
+            elif action_type == ActionType.CLICK_ABS:
+                return self.click_abs(
+                    x=params.get('x', 0),
+                    y=params.get('y', 0)
                 )
             
             elif action_type == ActionType.TYPE_TEXT:
@@ -667,120 +666,87 @@ class WindowsController(IWindowsController):
                 details={"exception": str(e), "params": params}
             )
     
-    def click_element(self, app_name: str, x: int, y: int) -> ExecutionResult:
+    def click_abs(self, x: int, y: int) -> ExecutionResult:
         """
-        Click on a specific element within an application window.
-        
+        Click on a specific element at absolute screen coordinates.
+
         Args:
-            app_name: Name of the application
-            x: X coordinate to click
-            y: Y coordinate to click
-            
+            x: Absolute X coordinate to click
+            y: Absolute Y coordinate to click
+        
         Returns:
             ExecutionResult: Result of the click operation
         """
         try:
-            # Use PowerShell to simulate Windows-MCP click_tool functionality
             powershell_cmd = f"""
             Add-Type @"
                 using System;
                 using System.Runtime.InteropServices;
                 public class Win32 {{
                     [DllImport("user32.dll")]
-                    public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
-                    [DllImport("user32.dll")]
                     public static extern bool SetCursorPos(int X, int Y);
                     [DllImport("user32.dll")]
                     public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, int dwExtraInfo);
-                    [DllImport("user32.dll")]
-                    public static extern bool SetForegroundWindow(IntPtr hWnd);
-                    [DllImport("user32.dll")]
-                    public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
-                    public struct RECT {{ public int Left; public int Top; public int Right; public int Bottom; }}
                 }}
 "@
 
-            $processes = Get-Process | Where-Object {{$_.ProcessName -like "*{app_name}*" -and $_.MainWindowTitle -ne ""}}
-            if ($processes) {{
-                $process = $processes[0]
-                $hwnd = $process.MainWindowHandle
-                if ($hwnd -ne [IntPtr]::Zero) {{
-                    # Get window position
-                    $rect = New-Object Win32+RECT
-                    [Win32]::GetWindowRect($hwnd, [ref]$rect)
-                    
-                    # Calculate absolute coordinates
-                    $absoluteX = $rect.Left + {x}
-                    $absoluteY = $rect.Top + {y}
-                    
-                    # Bring window to foreground
-                    [Win32]::SetForegroundWindow($hwnd)
-                    Start-Sleep -Milliseconds 100
-                    
-                    # Move cursor and click
-                    [Win32]::SetCursorPos($absoluteX, $absoluteY)
-                    [Win32]::mouse_event(0x02, 0, 0, 0, 0)  # MOUSEEVENTF_LEFTDOWN
-                    [Win32]::mouse_event(0x04, 0, 0, 0, 0)  # MOUSEEVENTF_LEFTUP
-                    
-                    Write-Output "SUCCESS: Clicked at ({x}, {y}) in {app_name}"
-                }} else {{
-                    Write-Output "ERROR: No main window handle found"
-                }}
-            }} else {{
-                Write-Output "ERROR: Process {app_name} not found or has no window"
-            }}
+            # Move cursor and click at absolute coordinates
+            [Win32]::SetCursorPos({x}, {y})
+            [Win32]::mouse_event(0x02, 0, 0, 0, 0)  # MOUSEEVENTF_LEFTDOWN
+            [Win32]::mouse_event(0x04, 0, 0, 0, 0)  # MOUSEEVENTF_LEFTUP
+            
+            Write-Output "SUCCESS: Clicked at ({x}, {y})"
             """
             
             result = self._execute_powershell(powershell_cmd)
             
             if result and "SUCCESS:" in result:
                 return ExecutionResult.success_result(
-                    operation="click_element",
-                    target=app_name,
-                    message=f"Successfully clicked at ({x}, {y}) in {app_name}"
+                    operation="click_abs",
+                    target="screen",
+                    message=f"Successfully clicked at ({x}, {y})"
                 )
             else:
                 return ExecutionResult.failure_result(
-                    operation="click_element",
-                    target=app_name,
-                    message=f"Failed to click in {app_name}: {result}",
-                    details={"powershell_output": result, "x": x, "y": y}
+                    operation="click_abs",
+                    target="screen",
+                    message=f"Failed to click at ({x}, {y}): {result}",
+                    details={{"powershell_output": result, "x": x, "y": y}}
                 )
                 
         except Exception as e:
             return ExecutionResult.failure_result(
-                operation="click_element",
-                target=app_name,
-                message=f"Exception occurred while clicking in {app_name}: {str(e)}",
-                details={"exception": str(e), "x": x, "y": y}
+                operation="click_abs",
+                target="screen",
+                message=f"Exception occurred while clicking: {str(e)}",
+                details={{"exception": str(e), "x": x, "y": y}}
             )
     
     def type_text(self, app_name: str, text: str, x: int, y: int) -> ExecutionResult:
         """
-        Type text at a specific location within an application window.
+        Type text at a specific location on the screen.
         
         Args:
-            app_name: Name of the application
+            app_name: Name of the application to focus
             text: Text to type
-            x: X coordinate to type at
-            y: Y coordinate to type at
+            x: Absolute X coordinate to type at
+            y: Absolute Y coordinate to type at
             
         Returns:
             ExecutionResult: Result of the type operation
         """
         try:
-            # First click at the position, then type text
-            click_result = self.click_element(app_name, x, y)
+            # First click at the absolute position, then type text
+            click_result = self.click_abs(x=x, y=y)
             if not click_result.success:
                 return ExecutionResult.failure_result(
                     operation="type_text",
                     target=app_name,
                     message=f"Failed to click before typing: {click_result.message}",
-                    details={"click_error": click_result.message}
+                    details={"click_error": click_result.details}
                 )
             
             # Wait a moment for the click to register
-            import time
             time.sleep(0.2)
             
             # Use PowerShell to type text (mimics Windows-MCP type_tool)
@@ -861,6 +827,27 @@ class WindowsController(IWindowsController):
                 details={"exception": str(e), "keys": keys}
             )
     
+    def get_mouse_position(self) -> Optional[Dict[str, int]]:
+        """
+        Get the current absolute position of the mouse cursor.
+
+        Returns:
+            Optional[Dict[str, int]]: Dictionary with 'x' and 'y' coordinates or None on failure.
+        """
+        try:
+            powershell_cmd = '''
+            Add-Type -AssemblyName System.Windows.Forms
+            $pos = [System.Windows.Forms.Cursor]::Position
+            @{x=$pos.X; y=$pos.Y} | ConvertTo-Json
+            '''
+            result = self._execute_powershell(powershell_cmd)
+            if result and result.startswith('{'):
+                pos = json.loads(result)
+                return {"x": int(pos["x"]), "y": int(pos["y"])}
+            return None
+        except Exception:
+            return None
+
     def get_app_state(self, app_name: str) -> Optional[Dict[str, Any]]:
         """
         Get the current state of an application.
