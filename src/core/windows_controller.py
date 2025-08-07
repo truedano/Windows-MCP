@@ -736,7 +736,20 @@ class WindowsController(IWindowsController):
             ExecutionResult: Result of the type operation
         """
         try:
-            # First click at the absolute position, then type text
+            # If an app_name is provided, focus the application window first
+            if app_name:
+                focus_result = self.focus_window(app_name)
+                if not focus_result.success:
+                    return ExecutionResult.failure_result(
+                        operation="type_text",
+                        target=app_name,
+                        message=f"Failed to focus app before typing: {focus_result.message}",
+                        details={"focus_error": focus_result.details}
+                    )
+                # Wait for the window to gain focus
+                time.sleep(0.5)
+
+            # Click at the absolute position to focus the input field
             click_result = self.click_abs(x=x, y=y)
             if not click_result.success:
                 return ExecutionResult.failure_result(
@@ -747,7 +760,7 @@ class WindowsController(IWindowsController):
                 )
             
             # Wait a moment for the click to register
-            time.sleep(0.2)
+            time.sleep(0.5)
             
             # Use PowerShell to type text (mimics Windows-MCP type_tool)
             # Escape special characters for PowerShell

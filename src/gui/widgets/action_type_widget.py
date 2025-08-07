@@ -26,6 +26,7 @@ class ActionTypeWidget(ttk.Frame):
         self.on_change = on_change
         self.mouse_listener = None
         self.capture_button = None
+        self.type_text_capture_button = None
         
         # Variables
         self.action_type_var = tk.StringVar(value=ActionType.LAUNCH_APP.value)
@@ -168,6 +169,11 @@ class ActionTypeWidget(ttk.Frame):
         # Type text parameters
         self.type_text_frame = ttk.Frame(self.params_frame)
         
+        type_text_capture_frame = ttk.Frame(self.type_text_frame)
+        type_text_capture_frame.pack(fill=tk.X, pady=(0, 5))
+        self.type_text_capture_button = ttk.Button(type_text_capture_frame, text="取得座標", command=self._start_click_capture)
+        self.type_text_capture_button.pack(side=tk.LEFT)
+
         ttk.Label(self.type_text_frame, text="輸入文字:").pack(anchor=tk.W)
         text_entry = ttk.Entry(self.type_text_frame, textvariable=self.text_var, width=40)
         text_entry.pack(fill=tk.X, pady=(5, 10))
@@ -335,7 +341,7 @@ class ActionTypeWidget(ttk.Frame):
             elif action_type == ActionType.TYPE_TEXT:
                 app_name = self.app_name_var.get().strip()
                 text = self.text_var.get().strip()
-                if not app_name or not text:
+                if not text:
                     return None
                 action_params = {
                     'app_name': app_name,
@@ -424,7 +430,16 @@ class ActionTypeWidget(ttk.Frame):
         if self.mouse_listener:
             return
 
-        self.capture_button.config(text="點擊螢幕擷取...", state=tk.DISABLED)
+        # Disable the correct button based on the current action type
+        action_type = ActionType(self.action_type_var.get())
+        button_to_disable = None
+        if action_type == ActionType.CLICK_ABS:
+            button_to_disable = self.capture_button
+        elif action_type == ActionType.TYPE_TEXT:
+            button_to_disable = self.type_text_capture_button
+        
+        if button_to_disable:
+            button_to_disable.config(text="點擊螢幕擷取...", state=tk.DISABLED)
 
         # Run listener in a separate thread to avoid blocking the GUI
         listener_thread = threading.Thread(target=self._run_listener, daemon=True)
@@ -454,6 +469,8 @@ class ActionTypeWidget(ttk.Frame):
         self._reset_capture_button()
 
     def _reset_capture_button(self):
-        """Resets the capture button to its original state."""
+        """Resets the capture button(s) to their original state."""
         if self.capture_button:
             self.capture_button.config(text="取得座標", state=tk.NORMAL)
+        if self.type_text_capture_button:
+            self.type_text_capture_button.config(text="取得座標", state=tk.NORMAL)
