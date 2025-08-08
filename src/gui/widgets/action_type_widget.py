@@ -454,12 +454,37 @@ class ActionTypeWidget(ttk.Frame):
     def _on_click(self, x, y, button, pressed):
         """Callback for mouse click event."""
         if button == mouse.Button.left and pressed:
-            self.x_var.set(x)
-            self.y_var.set(y)
+            # Prefer system-level cursor position to avoid DPI scaling mismatch
+            pos = self._get_system_cursor_position()
+            if pos is not None:
+                sx, sy = pos
+                self.x_var.set(sx)
+                self.y_var.set(sy)
+            else:
+                # Fallback to pynput-provided values if system call fails or on non-Windows
+                self.x_var.set(x)
+                self.y_var.set(y)
             
             # Stop the listener from the main thread
             self.after(0, self._stop_listener)
             return False  # Stop listener after one click
+
+    def _get_system_cursor_position(self) -> Optional[tuple[int, int]]:
+        """Get the current cursor position using the Windows API to avoid DPI scaling issues.
+        Returns None on non-Windows platforms or if the call fails.
+        """
+        try:
+            import ctypes
+
+            class POINT(ctypes.Structure):
+                _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
+
+            pt = POINT()
+            if ctypes.windll.user32.GetCursorPos(ctypes.byref(pt)):
+                return int(pt.x), int(pt.y)
+        except Exception:
+            pass
+        return None
 
     def _stop_listener(self):
         """Stops the mouse listener and resets the button."""

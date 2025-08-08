@@ -684,11 +684,18 @@ class WindowsController(IWindowsController):
                 using System.Runtime.InteropServices;
                 public class Win32 {{
                     [DllImport("user32.dll")]
+                    public static extern bool SetProcessDPIAware();
+                    [DllImport("user32.dll")]
+                    public static extern bool SetProcessDpiAwarenessContext(IntPtr dpiContext);
+                    [DllImport("user32.dll")]
                     public static extern bool SetCursorPos(int X, int Y);
                     [DllImport("user32.dll")]
                     public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, int dwExtraInfo);
                 }}
 "@
+
+            # Ensure the PowerShell process is DPI aware to avoid coordinate scaling issues
+            try {{ [Win32]::SetProcessDPIAware() | Out-Null }} catch {{ }}
 
             # Move cursor and click at absolute coordinates
             [Win32]::SetCursorPos({x}, {y})
