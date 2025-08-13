@@ -224,7 +224,7 @@ class TaskListWidget(ttk.Frame):
             ActionType.RESIZE_WINDOW: "調整視窗大小",
             ActionType.MOVE_WINDOW: "移動視窗",
             ActionType.SEND_KEYS: "發送按鍵",
-            ActionType.CLICK_ELEMENT: "點擊元素"
+            
         }
         return action_texts.get(action_type, str(action_type.value) if hasattr(action_type, 'value') else str(action_type))
     

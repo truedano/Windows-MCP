@@ -313,7 +313,7 @@ class ScheduleInfoWidget(ttk.Frame):
             "RESIZE_WINDOW": "Resize Window",
             "MOVE_WINDOW": "Move Window",
             "SEND_KEYS": "Send Keys",
-            "CLICK_ELEMENT": "Click Element"
+            "CLICK_ABS": "Click Absolute"
         }
         
         # Handle both old and new task formats

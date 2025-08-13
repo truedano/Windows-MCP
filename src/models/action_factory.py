@@ -6,7 +6,7 @@ from typing import Dict, Any, Optional, Type, Tuple
 from .action import (
     ActionType, ActionParams, LaunchAppParams, CloseAppParams,
     ResizeWindowParams, MoveWindowParams, WindowControlParams,
-    ClickElementParams, TypeTextParams, SendKeysParams, CustomCommandParams,
+    ClickAbsParams, TypeTextParams, SendKeysParams, CustomCommandParams,
     validate_action_params
 )
 from src.core.security_manager import get_security_manager, OperationType, SecurityLevel
@@ -57,7 +57,7 @@ class ActionParamsFactory:
                 return WindowControlParams(app_name=params['app_name'])
             
             elif action_type == ActionType.CLICK_ABS:
-                return ClickElementParams(
+                return ClickAbsParams(
                     app_name=params['app_name'],
                     x=params['x'],
                     y=params['y']
@@ -103,7 +103,7 @@ class ActionParamsFactory:
             ActionType.MAXIMIZE_WINDOW: {'app_name': str},
             ActionType.RESTORE_WINDOW: {'app_name': str},
             ActionType.FOCUS_WINDOW: {'app_name': str},
-            # CLICK_ELEMENT removed; for absolute screen clicks, use ActionType.CLICK_ABS with {'x': int, 'y': int}
+            
             ActionType.TYPE_TEXT: {'app_name': str, 'text': str, 'x': int, 'y': int},
             ActionType.SEND_KEYS: {'keys': list},
             ActionType.CUSTOM_COMMAND: {'command': str},

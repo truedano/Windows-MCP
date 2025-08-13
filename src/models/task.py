@@ -165,10 +165,6 @@ class Task:
         # Import ActionStep at the beginning to avoid scope issues
         from .action_step import ActionStep
         
-        # Backward compatibility for renamed ActionType
-        if data.get('action_type') == 'click_element':
-            data['action_type'] = 'click_abs'
-        
         # Handle backward compatibility for old single-action format
         if 'action_type' in data and 'action_params' in data:
             # Convert old format to new action sequence format
@@ -179,10 +175,6 @@ class Task:
             execution_options = ExecutionOptions.get_default()
         else:
             # New format with action sequence
-            # Backward compatibility for action steps
-            for step_data in data.get('action_sequence', []):
-                if step_data.get('action_type') == 'click_element':
-                    step_data['action_type'] = 'click_abs'
             
             action_sequence = [ActionStep.from_dict(step_data) for step_data in data['action_sequence']]
             execution_options = ExecutionOptions.from_dict(data.get('execution_options', {}))

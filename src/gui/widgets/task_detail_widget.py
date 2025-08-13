@@ -191,7 +191,7 @@ class TaskDetailWidget(ttk.Frame):
             ActionType.RESIZE_WINDOW: "📏 Resize Window",
             ActionType.MOVE_WINDOW: "📍 Move Window",
             ActionType.SEND_KEYS: "⌨️ Send Keys",
-            # CLICK_ELEMENT removed
+            
         }
         return action_texts.get(action_type, f"❓ {action_type.value if hasattr(action_type, 'value') else str(action_type)}")
     

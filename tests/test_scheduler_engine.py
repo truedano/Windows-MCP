@@ -185,7 +185,7 @@ class TestSchedulerEngine(unittest.TestCase):
             (ActionType.MINIMIZE_WINDOW, {}),
             (ActionType.MAXIMIZE_WINDOW, {}),
             (ActionType.FOCUS_WINDOW, {}),
-            (ActionType.CLICK_ELEMENT, {"x": 50, "y": 50}),
+            (ActionType.CLICK_ABS, {"x": 50, "y": 50}),
             (ActionType.TYPE_TEXT, {"text": "Hello", "x": 0, "y": 0}),
             (ActionType.SEND_KEYS, {"keys": ["ctrl", "s"]}),
             (ActionType.EXECUTE_POWERSHELL, {"command": "Get-Process"})

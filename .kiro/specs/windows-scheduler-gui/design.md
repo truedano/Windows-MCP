@@ -468,7 +468,7 @@ class WindowsController:
     + minimize_window(self, app_name: str) -> ExecutionResult
     + maximize_window(self, app_name: str) -> ExecutionResult
     + focus_window(self, app_name: str) -> ExecutionResult
-    + click_element(self, app_name: str, x: int, y: int) -> ExecutionResult
+    + click_abs(self, x: int, y: int) -> ExecutionResult
     + type_text(self, app_name: str, text: str, x: int, y: int) -> ExecutionResult
     + send_keys(self, keys: List[str]) -> ExecutionResult
     + execute_powershell(self, command: str) -> ExecutionResult
@@ -496,7 +496,7 @@ class ExecutionResult:
 **具體操作說明：**
 - `launch_app("notepad")` → 從開始功能表啟動記事本
 - `resize_window("chrome", 1024, 768)` → 將Chrome視窗調整為1024x768像素
-- `click_element("calculator", 100, 200)` → 在計算機應用程式的(100,200)位置點擊
+- `click_abs("calculator", 100, 200)` → 在計算機應用程式的(100,200)位置點擊
 - `type_text("notepad", "Hello World", 50, 100)` → 在記事本的指定位置輸入文字
 - `send_keys(["ctrl", "s"])` → 發送Ctrl+S快捷鍵進行儲存
 
@@ -663,7 +663,7 @@ class ActionType(Enum):
     FOCUS_WINDOW = "focus_window"          # 將視窗帶到前景
     
     # 滑鼠操作
-    CLICK_ELEMENT = "click_element"        # 點擊視窗內的特定元素
+    CLICK_ABS = "click_abs"        # 點擊視窗內的特定元素
     DRAG_ELEMENT = "drag_element"          # 拖拽操作從源座標到目標座標
     MOVE_MOUSE = "move_mouse"              # 移動滑鼠到指定位置
     SCROLL = "scroll"                      # 滾動操作 (垂直/水平)
@@ -709,7 +709,7 @@ class ActionType(Enum):
    - 執行：調用Windows-MCP的resize_tool功能設定位置
 
 ### 滑鼠操作
-6. **CLICK_ELEMENT** - 點擊UI元素 (對應 Click-Tool)
+6. **CLICK_ABS** - 點擊絕對座標 (對應 Click-Tool)
    - 參數：應用程式名稱、座標、按鈕類型、點擊次數
    - 執行：調用Windows-MCP的click_tool功能
 

@@ -86,7 +86,7 @@ class WindowControlParams(ActionParams):
 
 
 @dataclass
-class ClickElementParams(ActionParams):
+class ClickAbsParams(ActionParams):
     """Parameters for clicking an element."""
     x: int
     y: int
@@ -203,7 +203,7 @@ def validate_action_params(action_type: ActionType, params: Dict[str, Any]) -> b
                            ActionType.RESTORE_WINDOW, ActionType.FOCUS_WINDOW]:
             return _validate_window_control_params(params)
         elif action_type == ActionType.CLICK_ABS:
-            return _validate_click_element_params(params)
+            return _validate_click_abs_params(params)
         elif action_type == ActionType.TYPE_TEXT:
             return _validate_type_text_params(params)
         elif action_type == ActionType.SEND_KEYS:
@@ -293,7 +293,7 @@ def _validate_window_control_params(params: Dict[str, Any]) -> bool:
     )
 
 
-def _validate_click_element_params(params: Dict[str, Any]) -> bool:
+def _validate_click_abs_params(params: Dict[str, Any]) -> bool:
     """Validate click element parameters."""
     return (
         'x' in params and

@@ -6,7 +6,7 @@ import unittest
 from src.models.action import (
     ActionType, validate_action_params,
     LaunchAppParams, CloseAppParams, ResizeWindowParams,
-    MoveWindowParams, WindowControlParams, ClickElementParams,
+    MoveWindowParams, WindowControlParams, ClickAbsParams,
     TypeTextParams, SendKeysParams, CustomCommandParams
 )
 
@@ -123,11 +123,11 @@ class TestActionValidation(unittest.TestCase):
                 with self.subTest(action_type=action_type, params=params):
                     self.assertFalse(validate_action_params(action_type, params))
     
-    def test_click_element_validation(self):
+    def test_click_abs_validation(self):
         """Test click element parameter validation."""
         # Valid parameters
         valid_params = {"app_name": "notepad", "x": 100, "y": 200}
-        self.assertTrue(validate_action_params(ActionType.CLICK_ELEMENT, valid_params))
+        self.assertTrue(validate_action_params(ActionType.CLICK_ABS, {"x": 100, "y": 200}))
         
         # Invalid parameters
         invalid_params = [
@@ -140,7 +140,7 @@ class TestActionValidation(unittest.TestCase):
         
         for params in invalid_params:
             with self.subTest(params=params):
-                self.assertFalse(validate_action_params(ActionType.CLICK_ELEMENT, params))
+                self.assertFalse(validate_action_params(ActionType.CLICK_ABS, {"x": params.get("x", -1), "y": params.get("y", -1)}))
     
     def test_type_text_validation(self):
         """Test type text parameter validation."""

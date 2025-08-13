@@ -275,30 +275,20 @@ class MockWindowsController(IWindowsController):
             f"Application {app_name} not found"
         )
     
-    def click_element(self, app_name: str, x: int, y: int) -> ExecutionResult:
-        """Click on element in application window."""
+    
+    def click_abs(self, x: int, y: int) -> ExecutionResult:
+        """Click at absolute coordinates on screen (mock)."""
         self._simulate_delay()
-        
         if self._should_fail():
             return ExecutionResult.failure_result(
-                "click_element",
-                app_name,
-                f"Failed to click in {app_name}: Element not found"
+                "click_abs",
+                "screen",
+                f"Failed to click at ({x}, {y})"
             )
-        
-        # Check if app exists
-        app_exists = any(app.name == app_name for app in self._mock_apps)
-        if not app_exists:
-            return ExecutionResult.failure_result(
-                "click_element",
-                app_name,
-                f"Application {app_name} not found"
-            )
-        
         return ExecutionResult.success_result(
-            "click_element",
-            app_name,
-            f"Clicked at ({x}, {y}) in {app_name}"
+            "click_abs",
+            "screen",
+            f"Clicked at ({x}, {y})"
         )
     
     def type_text(self, app_name: str, text: str, x: int, y: int) -> ExecutionResult:
