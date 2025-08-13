@@ -299,8 +299,7 @@ class LogsTableWidget:
         """Handle double-click on log entry."""
         selection = self.tree.selection()
         if selection and self.on_log_select:
-            item = selection[0]
-            log_id = self.tree.set(item, "#0")
+            log_id = selection[0]
             log = next((l for l in self.logs if l.id == log_id), None)
             if log:
                 self.on_log_select(log)
@@ -346,10 +345,7 @@ class LogsTableWidget:
             log.result.message
         )
         
-        item = self.tree.insert("", tk.END, values=values, tags=tags)
-        
-        # Store log ID for reference
-        self.tree.set(item, "#0", log.id)
+        self.tree.insert("", tk.END, iid=log.id, values=values, tags=tags)
 
 
 class PaginationWidget:
@@ -645,9 +641,9 @@ class LogExportWidget:
 class ScheduleLogsPage(BasePage):
     """Enhanced schedule logs page with comprehensive log management."""
     
-    def __init__(self, parent: tk.Widget, page_manager=None):
+    def __init__(self, parent: tk.Widget, page_manager):
         """Initialize schedule logs page."""
-        super().__init__(parent, "logs", "Schedule Logs")
+        super().__init__(parent, "Logs", "執行記錄")
         self.page_manager = page_manager
         self.log_storage = get_log_storage()
         self.current_logs: List[ExecutionLog] = []
@@ -673,8 +669,8 @@ class ScheduleLogsPage(BasePage):
         header_frame.pack(fill=tk.X, padx=10, pady=(10, 0))
         
         title_label = ttk.Label(
-            header_frame, 
-            text="Schedule Logs", 
+            header_frame,
+            text="執行記錄",
             font=("Segoe UI", 16, "bold")
         )
         title_label.pack(side=tk.LEFT)

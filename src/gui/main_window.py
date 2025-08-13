@@ -133,7 +133,7 @@ class MainWindow:
         self.page_manager.register_page(SchedulesPage, task_manager=self.task_manager)
         # Register ScheduleDetailPage with task_manager parameter
         self.page_manager.register_page(ScheduleDetailPage, task_manager=self.task_manager)
-        self.page_manager.register_page(LogsPage)
+        self.page_manager.register_page(LogsPage, page_manager=self.page_manager)
         self.page_manager.register_page(SettingsPage)
         self.page_manager.register_page(HelpPage)
     
