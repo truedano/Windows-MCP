@@ -894,22 +894,29 @@ class LogDetailDialog:
     def show(self):
         """Show log detail dialog."""
         self._create_dialog()
-        self.dialog.mainloop()
+        # Use a modal wait instead of starting a nested mainloop
+        self.dialog.wait_window()
     
     def _create_dialog(self):
         """Create log detail dialog."""
         self.dialog = tk.Toplevel(self.parent)
         self.dialog.title(f"日誌詳細資訊 - {self.log.schedule_name}")
-        self.dialog.geometry("500x400")
+        # Sensible default size; will be centered and resizable
+        # Use up to 70% of screen or a minimum of 900x600
+        screen_w = self.dialog.winfo_screenwidth()
+        screen_h = self.dialog.winfo_screenheight()
+        width = max(900, int(screen_w * 0.7))
+        height = max(600, int(screen_h * 0.7))
+        self.dialog.geometry(f"{width}x{height}")
+        self.dialog.minsize(800, 500)
         self.dialog.resizable(True, True)
         self.dialog.transient(self.parent)
         self.dialog.grab_set()
         
-        # Center dialog
-        self.dialog.geometry("+%d+%d" % (
-            self.parent.winfo_rootx() + 50,
-            self.parent.winfo_rooty() + 50
-        ))
+        # Center dialog relative to screen
+        x = (screen_w - width) // 2
+        y = (screen_h - height) // 2
+        self.dialog.geometry(f"{width}x{height}+{x}+{y}")
         
         # Main frame
         main_frame = ttk.Frame(self.dialog, padding=10)

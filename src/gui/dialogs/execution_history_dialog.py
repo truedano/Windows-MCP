@@ -367,8 +367,16 @@ class ExecutionHistoryDialog:
         """Show detailed dialog for a specific log entry."""
         detail_dialog = tk.Toplevel(self.dialog)
         detail_dialog.title("Execution Log Details")
-        detail_dialog.geometry("800x600")
-        detail_dialog.minsize(600, 400)
+        # Use a larger, adaptive default size and center on screen
+        screen_w = detail_dialog.winfo_screenwidth()
+        screen_h = detail_dialog.winfo_screenheight()
+        width = max(900, int(screen_w * 0.7))
+        height = max(600, int(screen_h * 0.7))
+        x = (screen_w - width) // 2
+        y = (screen_h - height) // 2
+        detail_dialog.geometry(f"{width}x{height}+{x}+{y}")
+        detail_dialog.minsize(800, 500)
+        detail_dialog.resizable(True, True)
         detail_dialog.transient(self.dialog)
         detail_dialog.grab_set()
         
