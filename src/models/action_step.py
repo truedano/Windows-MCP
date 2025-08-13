@@ -20,6 +20,7 @@ class ActionStep:
     delay_after: timedelta = timedelta(seconds=1)  # 執行後延遲時間
     continue_on_error: bool = True  # 失敗時是否繼續執行後續動作
     description: Optional[str] = None  # 動作描述
+    comment: Optional[str] = None  # 動作註解
     
     def validate(self) -> bool:
         """Validate the action step configuration."""
@@ -45,7 +46,8 @@ class ActionStep:
             'action_params': self.action_params,
             'delay_after': self.delay_after.total_seconds(),
             'continue_on_error': self.continue_on_error,
-            'description': self.description
+            'description': self.description,
+            'comment': self.comment
         }
     
     @classmethod
@@ -57,14 +59,16 @@ class ActionStep:
             action_params=data['action_params'],
             delay_after=timedelta(seconds=data.get('delay_after', 1.0)),
             continue_on_error=data.get('continue_on_error', True),
-            description=data.get('description')
+            description=data.get('description'),
+            comment=data.get('comment')
         )
     
     @classmethod
-    def create(cls, action_type: ActionType, action_params: Dict[str, Any], 
-               delay_after: timedelta = timedelta(seconds=1), 
+    def create(cls, action_type: ActionType, action_params: Dict[str, Any],
+               delay_after: timedelta = timedelta(seconds=1),
                continue_on_error: bool = True,
-               description: Optional[str] = None) -> 'ActionStep':
+               description: Optional[str] = None,
+               comment: Optional[str] = None) -> 'ActionStep':
         """Create a new action step with auto-generated ID."""
         return cls(
             id=str(uuid.uuid4()),
@@ -72,7 +76,8 @@ class ActionStep:
             action_params=action_params,
             delay_after=delay_after,
             continue_on_error=continue_on_error,
-            description=description
+            description=description,
+            comment=comment
         )
 
 
@@ -115,7 +120,7 @@ def create_action_sequence(actions: List[tuple]) -> List[ActionStep]:
     Helper function to create action sequence from list of tuples.
     
     Args:
-        actions: List of tuples (action_type, action_params, delay_after, continue_on_error, description)
+        actions: List of tuples (action_type, action_params, delay_after, continue_on_error, description, comment)
                  Only action_type and action_params are required.
     
     Returns:
@@ -132,13 +137,15 @@ def create_action_sequence(actions: List[tuple]) -> List[ActionStep]:
         delay_after = action_data[2] if len(action_data) > 2 else timedelta(seconds=1)
         continue_on_error = action_data[3] if len(action_data) > 3 else True
         description = action_data[4] if len(action_data) > 4 else None
+        comment = action_data[5] if len(action_data) > 5 else None
         
         step = ActionStep.create(
             action_type=action_type,
             action_params=action_params,
             delay_after=delay_after,
             continue_on_error=continue_on_error,
-            description=description
+            description=description,
+            comment=comment
         )
         sequence.append(step)
     

@@ -404,14 +404,9 @@ class ScheduleDialog:
             # Create action sequence from config
             from src.models.action_step import ActionStep, ExecutionOptions
             
-            action_steps = []
-            for action_config in config['action_sequence']:
-                action_step = ActionStep.create(
-                    action_type=action_config['action_type'],
-                    action_params=action_config['action_params'],
-                    description=f"{action_config['action_type'].value} on {config['target_app']}"
-                )
-                action_steps.append(action_step)
+            action_steps = self.action_sequence_widget.get_action_steps()
+            if not action_steps:
+                raise ValueError("無法取得有效的動作序列")
             
             # Create or update task
             if self.task:

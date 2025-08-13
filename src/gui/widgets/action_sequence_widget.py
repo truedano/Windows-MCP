@@ -26,6 +26,7 @@ class ActionSequenceWidget(ttk.Frame):
         super().__init__(parent)
         self.on_change = on_change
         self.action_widgets: List[ActionTypeWidget] = []
+        self.comment_vars: List[tk.StringVar] = []
         
         # Create UI
         self._create_ui()
@@ -74,25 +75,24 @@ class ActionSequenceWidget(ttk.Frame):
             self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
         self.canvas.bind("<MouseWheel>", _on_mousewheel)
     
-    def _add_action(self):
+    def _add_action(self, config: Optional[Dict[str, Any]] = None, comment: str = ""):
         """Add a new action to the sequence."""
-        # Action type widget
         action_widget = ActionTypeWidget(None, on_change=self._on_action_change)
-        
-        # Store references first
+        if config:
+            action_widget.set_action(config['action_type'], config['action_params'])
+
         self.action_widgets.append(action_widget)
-        
-        # Rebuild the entire UI to ensure correct indices
+        self.comment_vars.append(tk.StringVar(value=comment))
+
         self._rebuild_ui()
-        
-        # Notify change
         self._on_action_change()
     
     def _remove_action(self, index: int):
         """Remove an action from the sequence."""
         if index < len(self.action_widgets) and len(self.action_widgets) > 1:
-            # Remove widget from list
+            # Remove widget and comment var from lists
             self.action_widgets.pop(index)
+            self.comment_vars.pop(index)
             
             # Rebuild the UI to update indices
             self._rebuild_ui()
@@ -106,6 +106,8 @@ class ActionSequenceWidget(ttk.Frame):
             # Swap widgets
             self.action_widgets[index], self.action_widgets[index - 1] = \
                 self.action_widgets[index - 1], self.action_widgets[index]
+            self.comment_vars[index], self.comment_vars[index - 1] = \
+                self.comment_vars[index - 1], self.comment_vars[index]
             
             # Rebuild UI
             self._rebuild_ui()
@@ -119,6 +121,8 @@ class ActionSequenceWidget(ttk.Frame):
             # Swap widgets
             self.action_widgets[index], self.action_widgets[index + 1] = \
                 self.action_widgets[index + 1], self.action_widgets[index]
+            self.comment_vars[index], self.comment_vars[index + 1] = \
+                self.comment_vars[index + 1], self.comment_vars[index]
             
             # Rebuild UI
             self._rebuild_ui()
@@ -130,74 +134,74 @@ class ActionSequenceWidget(ttk.Frame):
         """Insert a new action below the specified index."""
         new_action_widget = ActionTypeWidget(None, on_change=self._on_action_change)
         self.action_widgets.insert(index + 1, new_action_widget)
+        self.comment_vars.insert(index + 1, tk.StringVar())
         self._rebuild_ui()
         self._on_action_change()
 
     def _rebuild_ui(self):
         """Rebuild the UI with current action widgets."""
-        # Clear the scrollable frame
+        # Store current configurations before rebuilding
+        saved_states = []
+        for i, widget in enumerate(self.action_widgets):
+            config = widget.get_action_config()
+            comment = self.comment_vars[i].get() if i < len(self.comment_vars) else ""
+            saved_states.append({'config': config, 'comment': comment})
+
+        # Clear the scrollable frame and widget lists
         for widget in self.scrollable_frame.winfo_children():
             widget.destroy()
-        
-        # Store current configurations before rebuilding
-        configs = []
-        for action_widget in self.action_widgets:
-            if hasattr(action_widget, 'get_action_config'):
-                config = action_widget.get_action_config()
-                configs.append(config)
-            else:
-                configs.append(None)
-        
+        self.action_widgets.clear()
+        self.comment_vars.clear()
+
         # Recreate action frames and widgets
-        new_action_widgets = []
-        for i, config in enumerate(configs):
+        for i, state in enumerate(saved_states):
             action_frame = ttk.LabelFrame(self.scrollable_frame,
-                                        text=f"動作 {i + 1}",
-                                        padding=10)
-            action_frame.pack(fill=tk.X, pady=(0, 10))
-            
+                                          text=f"動作 {i + 1}",
+                                          padding=10)
+            action_frame.pack(fill=tk.X, pady=(0, 10), padx=5)
+
             # Action controls frame
             controls_frame = ttk.Frame(action_frame)
             controls_frame.pack(fill=tk.X, pady=(0, 10))
-            
+
             # Remove button
             remove_btn = ttk.Button(controls_frame, text="移除",
-                                  command=self._create_remove_command(i))
-            if len(self.action_widgets) > 1:
+                                    command=self._create_remove_command(i))
+            if len(saved_states) > 1:
                 remove_btn.pack(side=tk.RIGHT)
 
             # Insert button
             insert_btn = ttk.Button(controls_frame, text="往下插入",
-                                    command=self._create_insert_command(i))
+                                      command=self._create_insert_command(i))
             insert_btn.pack(side=tk.RIGHT, padx=(0, 5))
-            
+
             # Move buttons
-            if i < len(self.action_widgets) - 1:
+            if i < len(saved_states) - 1:
                 down_btn = ttk.Button(controls_frame, text="↓", width=3,
-                                    command=self._create_move_down_command(i))
+                                      command=self._create_move_down_command(i))
                 down_btn.pack(side=tk.RIGHT, padx=(0, 5))
-            
+
             if i > 0:
                 up_btn = ttk.Button(controls_frame, text="↑", width=3,
-                                  command=self._create_move_up_command(i))
+                                    command=self._create_move_up_command(i))
                 up_btn.pack(side=tk.RIGHT, padx=(0, 5))
-            
-            # Create new action widget
+
+            # Create new action widget and restore its state
             action_widget = ActionTypeWidget(action_frame, on_change=self._on_action_change)
+            if state['config']:
+                action_widget.set_action(state['config']['action_type'], state['config']['action_params'])
             action_widget.pack(fill=tk.X)
-            
-            # Restore configuration if available
-            if config and hasattr(action_widget, 'set_action'):
-                try:
-                    action_widget.set_action(config['action_type'], config['action_params'])
-                except:
-                    pass  # If restoration fails, keep default
-            
-            new_action_widgets.append(action_widget)
-        
-        # Update the action widgets list
-        self.action_widgets = new_action_widgets
-        
+            self.action_widgets.append(action_widget)
+
+            # Comment field
+            comment_frame = ttk.Frame(action_frame)
+            comment_frame.pack(fill=tk.X, pady=(5, 0))
+            ttk.Label(comment_frame, text="註解:").pack(side=tk.LEFT, anchor='nw', padx=(0, 5))
+            comment_var = tk.StringVar(value=state['comment'])
+            comment_entry = ttk.Entry(comment_frame, textvariable=comment_var)
+            comment_entry.pack(fill=tk.X, expand=True)
+            self.comment_vars.append(comment_var)
+
         # Update canvas scroll region
         self.scrollable_frame.update_idletasks()
         self.canvas.configure(scrollregion=self.canvas.bbox("all"))
@@ -268,11 +272,13 @@ class ActionSequenceWidget(ttk.Frame):
             return None
         
         action_steps = []
-        for config in sequence_config:
+        for i, config in enumerate(sequence_config):
+            comment = self.comment_vars[i].get().strip() if i < len(self.comment_vars) else ""
             step = ActionStep.create(
                 action_type=config['action_type'],
                 action_params=config['action_params'],
-                description=f"{config['action_type'].value} (Step {config['sequence_order'] + 1})"
+                description=f"{config['action_type'].value} (Step {config['sequence_order'] + 1})",
+                comment=comment if comment else None
             )
             action_steps.append(step)
         
@@ -286,15 +292,23 @@ class ActionSequenceWidget(ttk.Frame):
             action_steps: List of ActionStep objects
         """
         # Clear existing widgets
-        self.action_widgets.clear()
         for widget in self.scrollable_frame.winfo_children():
             widget.destroy()
-        
-        # Add widgets for each action step
-        for i, step in enumerate(action_steps):
+        self.action_widgets.clear()
+        self.comment_vars.clear()
+
+        if not action_steps:
             self._add_action()
-            # Set the action configuration
-            self.action_widgets[i].set_action(step.action_type, step.action_params)
+            return
+
+        # Create widgets and vars from steps
+        for step in action_steps:
+            action_widget = ActionTypeWidget(None, on_change=self._on_action_change)
+            action_widget.set_action(step.action_type, step.action_params)
+            self.action_widgets.append(action_widget)
+            self.comment_vars.append(tk.StringVar(value=step.comment or ""))
+        
+        self._rebuild_ui()
     
     def validate(self) -> bool:
         """
