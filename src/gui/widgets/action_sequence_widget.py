@@ -126,6 +126,13 @@ class ActionSequenceWidget(ttk.Frame):
             # Notify change
             self._on_action_change()
     
+    def _insert_action_below(self, index: int):
+        """Insert a new action below the specified index."""
+        new_action_widget = ActionTypeWidget(None, on_change=self._on_action_change)
+        self.action_widgets.insert(index + 1, new_action_widget)
+        self._rebuild_ui()
+        self._on_action_change()
+
     def _rebuild_ui(self):
         """Rebuild the UI with current action widgets."""
         # Clear the scrollable frame
@@ -144,8 +151,8 @@ class ActionSequenceWidget(ttk.Frame):
         # Recreate action frames and widgets
         new_action_widgets = []
         for i, config in enumerate(configs):
-            action_frame = ttk.LabelFrame(self.scrollable_frame, 
-                                        text=f"動作 {i + 1}", 
+            action_frame = ttk.LabelFrame(self.scrollable_frame,
+                                        text=f"動作 {i + 1}",
                                         padding=10)
             action_frame.pack(fill=tk.X, pady=(0, 10))
             
@@ -154,10 +161,15 @@ class ActionSequenceWidget(ttk.Frame):
             controls_frame.pack(fill=tk.X, pady=(0, 10))
             
             # Remove button
-            remove_btn = ttk.Button(controls_frame, text="移除", 
+            remove_btn = ttk.Button(controls_frame, text="移除",
                                   command=self._create_remove_command(i))
             if len(self.action_widgets) > 1:
                 remove_btn.pack(side=tk.RIGHT)
+
+            # Insert button
+            insert_btn = ttk.Button(controls_frame, text="往下插入",
+                                    command=self._create_insert_command(i))
+            insert_btn.pack(side=tk.RIGHT, padx=(0, 5))
             
             # Move buttons
             if i < len(self.action_widgets) - 1:
@@ -207,6 +219,12 @@ class ActionSequenceWidget(ttk.Frame):
         def move_down_command():
             self._move_action_down(index)
         return move_down_command
+
+    def _create_insert_command(self, index: int):
+        """Create an insert command function with proper index capture."""
+        def insert_command():
+            self._insert_action_below(index)
+        return insert_command
     
     def _update_remove_buttons(self):
         """Update visibility of remove buttons."""
