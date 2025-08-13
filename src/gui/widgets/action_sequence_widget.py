@@ -37,15 +37,22 @@ class ActionSequenceWidget(ttk.Frame):
         """Create the widget UI."""
         # Header frame
         header_frame = ttk.Frame(self)
-        header_frame.pack(fill=tk.X, pady=(0, 10))
+        header_frame.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
         
         ttk.Label(header_frame, text="動作序列", font=("", 12, "bold")).pack(side=tk.LEFT)
         
         # Add action button
         add_btn = ttk.Button(header_frame, text="+ 新增動作", command=self._add_action)
         add_btn.pack(side=tk.RIGHT)
+
+        # Add a separator to define the end of header row in grid
+        sep = ttk.Separator(self, orient="horizontal")
+        sep.grid(row=1, column=0, columnspan=2, sticky="ew")
         
-        # Scrollable frame for actions
+        # Scrollable frame for actions (maximize scrollbar by letting container consume full height)
+        self.grid_rowconfigure(2, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+
         self.canvas = tk.Canvas(self, highlightthickness=0)
         self.scrollbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
         self.scrollable_frame = ttk.Frame(self.canvas)
@@ -58,8 +65,9 @@ class ActionSequenceWidget(ttk.Frame):
         self.canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
         self.canvas.configure(yscrollcommand=self.scrollbar.set)
         
-        self.canvas.pack(side="left", fill="both", expand=True)
-        self.scrollbar.pack(side="right", fill="y")
+        # Use grid to allow scrollbar to stretch fully
+        self.canvas.grid(row=2, column=0, sticky="nsew")
+        self.scrollbar.grid(row=2, column=1, sticky="ns")
         
         # Bind mouse wheel
         def _on_mousewheel(event):

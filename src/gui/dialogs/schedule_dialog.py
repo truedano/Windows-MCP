@@ -187,31 +187,10 @@ class ScheduleDialog:
         action_frame = ttk.Frame(self.notebook)
         self.notebook.add(action_frame, text="動作設定")
         
-        # Create scrollable frame for action tab
-        canvas = tk.Canvas(action_frame, highlightthickness=0)
-        scrollbar = ttk.Scrollbar(action_frame, orient="vertical", command=canvas.yview)
-        scrollable_frame = ttk.Frame(canvas)
-        
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
-        
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-        
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-        
-        # Action sequence widget (new multi-action support)
-        self.action_sequence_widget = ActionSequenceWidget(scrollable_frame, 
+        # Place action sequence widget directly and let it manage its own scroll to maximize available space
+        self.action_sequence_widget = ActionSequenceWidget(action_frame, 
                                                           on_change=self._update_preview)
         self.action_sequence_widget.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
-        
-        # Bind mouse wheel to canvas
-        def _on_mousewheel(event):
-            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-        canvas.bind("<MouseWheel>", _on_mousewheel)
     
     def _create_options_tab(self):
         """Create the options tab."""
