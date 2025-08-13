@@ -580,114 +580,6 @@ class LogStorage(ILogStorage):
                 self.logger.error(f"Error deleting logs: {e}", exc_info=True)
                 return False
     
-    def export_logs(self, logs: List[ExecutionLog], format: str, file_path: str) -> bool:
-        """
-        Export logs to different formats.
-        
-        Args:
-            logs: List of logs to export
-            format: Export format ('json', 'csv', 'txt')
-            file_path: Output file path
-            
-        Returns:
-            True if export was successful
-        """
-        try:
-            if format.lower() == 'json':
-                return self._export_json(logs, file_path)
-            elif format.lower() == 'csv':
-                return self._export_csv(logs, file_path)
-            elif format.lower() == 'txt':
-                return self._export_txt(logs, file_path)
-            else:
-                self.logger.error(f"Unsupported export format: {format}")
-                return False
-                
-        except Exception as e:
-            self.logger.error(f"Error exporting logs: {e}")
-            return False
-    
-    def _export_json(self, logs: List[ExecutionLog], file_path: str) -> bool:
-        """Export logs to JSON format."""
-        try:
-            export_data = {
-                'exported_at': datetime.now().isoformat(),
-                'total_logs': len(logs),
-                'logs': [log.to_dict() for log in logs]
-            }
-            
-            with open(file_path, 'w', encoding='utf-8') as f:
-                json.dump(export_data, f, indent=2, ensure_ascii=False)
-            
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"Error exporting to JSON: {e}")
-            return False
-    
-    def _export_csv(self, logs: List[ExecutionLog], file_path: str) -> bool:
-        """Export logs to CSV format."""
-        try:
-            with open(file_path, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f)
-                
-                # Write header
-                writer.writerow([
-                    'ID', 'Schedule Name', 'Execution Time', 'Success', 
-                    'Operation', 'Target', 'Message', 'Duration (seconds)', 'Retry Count'
-                ])
-                
-                # Write data
-                for log in logs:
-                    writer.writerow([
-                        log.id,
-                        log.schedule_name,
-                        log.execution_time.isoformat(),
-                        log.result.success,
-                        log.result.operation,
-                        log.result.target,
-                        log.result.message,
-                        log.duration.total_seconds(),
-                        log.retry_count
-                    ])
-            
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"Error exporting to CSV: {e}")
-            return False
-    
-    def _export_txt(self, logs: List[ExecutionLog], file_path: str) -> bool:
-        """Export logs to text format."""
-        try:
-            with open(file_path, 'w', encoding='utf-8') as f:
-                f.write(f"Execution Logs Export\n")
-                f.write(f"Exported at: {datetime.now().isoformat()}\n")
-                f.write(f"Total logs: {len(logs)}\n")
-                f.write("=" * 80 + "\n\n")
-                
-                for log in logs:
-                    f.write(f"Log ID: {log.id}\n")
-                    f.write(f"Schedule: {log.schedule_name}\n")
-                    f.write(f"Execution Time: {log.execution_time.isoformat()}\n")
-                    f.write(f"Success: {'Yes' if log.result.success else 'No'}\n")
-                    f.write(f"Operation: {log.result.operation}\n")
-                    f.write(f"Target: {log.result.target}\n")
-                    f.write(f"Message: {log.result.message}\n")
-                    f.write(f"Duration: {log.duration.total_seconds():.2f} seconds\n")
-                    f.write(f"Retry Count: {log.retry_count}\n")
-                    
-                    if log.result.details:
-                        f.write(f"Details: {json.dumps(log.result.details, indent=2)}\n")
-                    
-                    f.write("-" * 80 + "\n\n")
-            
-            return True
-            
-        except Exception as e:
-            self.logger.error(f"Error exporting to TXT: {e}")
-            return False
-    
     def rotate_log_files(self) -> bool:
         """
         Manually trigger log file rotation.
@@ -1024,7 +916,13 @@ class LogStorage(ILogStorage):
         """
         try:
             all_logs = list(self._log_cache.values())
-            return self.export_logs(all_logs, 'json', backup_path)
+            try:
+                with open(backup_path, 'w', encoding='utf-8') as f:
+                    json.dump([log.to_dict() for log in all_logs], f, indent=2, ensure_ascii=False)
+                return True
+            except Exception as e:
+                self.logger.error(f"Error exporting to JSON for backup: {e}")
+                return False
         except Exception as e:
             self.logger.error(f"Error creating backup: {e}")
             return False

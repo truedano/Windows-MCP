@@ -491,13 +491,12 @@ class PaginationWidget:
 class LogExportWidget:
     """Widget for log export and management functions."""
     
-    def __init__(self, parent: tk.Widget, on_export: Optional[Callable[[str, str], None]] = None,
+    def __init__(self, parent: tk.Widget,
                  on_clear_logs: Optional[Callable[[datetime], None]] = None,
                  on_backup: Optional[Callable[[], None]] = None,
                  on_clear_all_logs: Optional[Callable[[], None]] = None):
         """Initialize log export widget."""
         self.parent = parent
-        self.on_export = on_export
         self.on_clear_logs = on_clear_logs
         self.on_backup = on_backup
         self.on_clear_all_logs = on_clear_all_logs
@@ -509,33 +508,6 @@ class LogExportWidget:
         # Export and management frame
         self.export_frame = ttk.LabelFrame(self.parent, text="日誌管理", padding=10)
         self.export_frame.pack(fill=tk.X, padx=5, pady=(0, 10))
-        
-        # Export section
-        export_section = ttk.Frame(self.export_frame)
-        export_section.pack(fill=tk.X, pady=(0, 10))
-        
-        ttk.Label(export_section, text="匯出格式:", font=("Segoe UI", 10, "bold")).pack(side=tk.LEFT, padx=(0, 10))
-        
-        # Export format selection
-        self.export_format = tk.StringVar(value="csv")
-        formats = [("CSV", "csv"), ("JSON", "json"), ("TXT", "txt")]
-        
-        for text, value in formats:
-            ttk.Radiobutton(
-                export_section, 
-                text=text, 
-                variable=self.export_format, 
-                value=value
-            ).pack(side=tk.LEFT, padx=(0, 15))
-        
-        # Export button
-        self.export_btn = ttk.Button(
-            export_section,
-            text="📤 匯出日誌",
-            command=self._export_logs,
-            style="Accent.TButton"
-        )
-        self.export_btn.pack(side=tk.RIGHT, padx=(10, 0))
         
         # Management section
         management_section = ttk.Frame(self.export_frame)
@@ -587,32 +559,6 @@ class LogExportWidget:
             command=self._clear_all_logs
         )
         self.clear_all_btn.pack(side=tk.RIGHT, padx=(10, 0))
-    
-    def _export_logs(self):
-        """Handle log export."""
-        format_type = self.export_format.get()
-        
-        # Open file dialog
-        file_types = {
-            'csv': [('CSV files', '*.csv'), ('All files', '*.*')],
-            'json': [('JSON files', '*.json'), ('All files', '*.*')],
-            'txt': [('Text files', '*.txt'), ('All files', '*.*')]
-        }
-        
-        default_extension = {
-            'csv': '.csv',
-            'json': '.json',
-            'txt': '.txt'
-        }
-        
-        file_path = filedialog.asksaveasfilename(
-            title=f"匯出日誌為 {format_type.upper()}",
-            filetypes=file_types[format_type],
-            defaultextension=default_extension[format_type]
-        )
-        
-        if file_path and self.on_export:
-            self.on_export(format_type, file_path)
     
     def _clear_logs(self):
         """Handle log clearing."""
@@ -712,7 +658,6 @@ class ScheduleLogsPage(BasePage):
         # Export and management widget
         self.export_widget = LogExportWidget(
             self.frame,
-            on_export=self._export_logs,
             on_clear_logs=self._clear_logs,
             on_backup=self._backup_logs,
             on_clear_all_logs=self._clear_all_logs_all
@@ -809,22 +754,6 @@ class ScheduleLogsPage(BasePage):
             
         except Exception as e:
             messagebox.showerror("錯誤", f"重新整理失敗：{str(e)}")
-    
-    def _export_logs(self, format_type: str, file_path: str):
-        """Export current logs."""
-        try:
-            # Get all logs matching current filters
-            all_logs = self.log_storage.load_logs(0, 10000, self.current_filters)
-            
-            success = self.log_storage.export_logs(all_logs, format_type, file_path)
-            
-            if success:
-                messagebox.showinfo("成功", f"日誌已匯出至：{file_path}")
-            else:
-                messagebox.showerror("錯誤", "匯出日誌失敗")
-                
-        except Exception as e:
-            messagebox.showerror("錯誤", f"匯出日誌失敗：{str(e)}")
     
     def _clear_all_logs_all(self):
         """Clear all logs via storage and refresh."""
