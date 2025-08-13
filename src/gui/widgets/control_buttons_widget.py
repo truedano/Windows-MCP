@@ -276,9 +276,7 @@ class ControlButtonsWidget(ttk.Frame):
             # Execute the task
             result = self.task_manager.execute_task_immediately(task_id)
             
-            if result:
-                messagebox.showinfo("Success", f"Task '{task.name}' executed successfully")
-            else:
+            if not result:
                 # Get more detailed error information
                 task_after = self.task_manager.get_task(task_id)
                 error_details = f"Task '{task.name}' execution failed"
