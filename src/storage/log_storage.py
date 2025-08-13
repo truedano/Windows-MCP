@@ -373,15 +373,42 @@ class LogStorage(ILogStorage):
     def _load_log_file(self, file_path: Path) -> None:
         """Load logs from a JSON file."""
         try:
+            if not file_path.exists() or file_path.stat().st_size == 0:
+                return
+
             with open(file_path, 'r', encoding='utf-8') as f:
-                for line in f:
-                    line = line.strip()
-                    if line:
-                        log_data = json.loads(line)
+                content = f.read()
+                # Handle empty file
+                if not content.strip():
+                    return
+
+                logs_data = json.loads(content)
+                
+                if isinstance(logs_data, list):
+                    for log_data in logs_data:
                         log = ExecutionLog.from_dict(log_data)
                         self._log_cache[log.id] = log
                         self._index.add_log(log)
-                        
+                else:
+                    self.logger.warning(f"Log file {file_path} contains a single JSON object, not an array. Wrapping it in a list.")
+                    log = ExecutionLog.from_dict(logs_data)
+                    self._log_cache[log.id] = log
+                    self._index.add_log(log)
+
+        except json.JSONDecodeError:
+            self.logger.warning(f"Could not decode JSON from {file_path}. Attempting to read as JSON Lines (old format).")
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        line = line.strip()
+                        if line:
+                            log_data = json.loads(line)
+                            log = ExecutionLog.from_dict(log_data)
+                            self._log_cache[log.id] = log
+                            self._index.add_log(log)
+                self.logger.info(f"Successfully loaded {file_path} as JSON Lines format.")
+            except Exception as e_lines:
+                self.logger.error(f"Failed to load {file_path} as JSON Lines: {e_lines}")
         except Exception as e:
             self.logger.error(f"Error loading log file {file_path}: {e}")
     
@@ -416,10 +443,24 @@ class LogStorage(ILogStorage):
                 self._log_cache[log.id] = log
                 self._index.add_log(log)
                 
-                # Append to current log file
-                log_data = log.to_dict()
-                with open(self.current_log_path, 'a', encoding='utf-8') as f:
-                    f.write(json.dumps(log_data, ensure_ascii=False) + '\n')
+                # Read-modify-write to keep the file as a valid JSON array
+                logs_on_disk = []
+                if self.current_log_path.exists() and self.current_log_path.stat().st_size > 0:
+                    try:
+                        with open(self.current_log_path, 'r', encoding='utf-8') as f:
+                            logs_on_disk = json.load(f)
+                        if not isinstance(logs_on_disk, list):
+                            self.logger.warning("Log file content is not a list. Wrapping it.")
+                            logs_on_disk = [logs_on_disk]
+                    except json.JSONDecodeError:
+                        self.logger.warning(f"Log file at {self.current_log_path} is not a valid JSON array. Reading as JSON Lines.")
+                        with open(self.current_log_path, 'r', encoding='utf-8') as f:
+                            logs_on_disk = [json.loads(line) for line in f if line.strip()]
+
+                logs_on_disk.append(log.to_dict())
+
+                with open(self.current_log_path, 'w', encoding='utf-8') as f:
+                    json.dump(logs_on_disk, f, indent=4, ensure_ascii=False)
                 
                 # Check if rotation is needed
                 if self._should_rotate_log():

@@ -199,8 +199,9 @@ class TaskExecutionCoordinator(ConfigObserver):
             # Execute the task
             result = self._execute_task_with_context(context)
             
-            # Process result
-            self._process_execution_result(task, result, is_scheduled=False)
+            # The result is already processed and logged by the scheduler engine
+            # or the _on_scheduler_task_executed callback.
+            # No need to call _process_execution_result here again.
             
             return result
             
@@ -308,10 +309,7 @@ class TaskExecutionCoordinator(ConfigObserver):
                 self.task_manager.update_task_status(task.id, TaskStatus.COMPLETED)
                 self.logger.info(f"One-time task completed: {task.name}")
             
-            # Log successful execution
-            duration = datetime.now() - result.timestamp
-            self.log_manager.log_execution(task, result, duration)
-            
+            # Logging is now handled by the scheduler engine
             self.logger.info(f"Task executed successfully: {task.name}")
             
         except Exception as e:
@@ -355,9 +353,7 @@ class TaskExecutionCoordinator(ConfigObserver):
                 
                 self.logger.error(f"Task failed permanently: {task.name} - max retries exceeded")
             
-            # Log failed execution
-            duration = datetime.now() - result.timestamp
-            self.log_manager.log_execution(task, result, duration)
+            # Logging is now handled by the scheduler engine
             
         except Exception as e:
             self.logger.error(f"Error handling failed execution: {e}")
