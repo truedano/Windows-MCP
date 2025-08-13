@@ -490,28 +490,53 @@ class LogStorage(ILogStorage):
         """
         with self._lock:
             try:
+                # To ensure all logs are considered (not just those in cache),
+                # we perform a full reload. This is less efficient but ensures correctness.
+                self.logger.info("Performing full reload for log deletion...")
+                self._log_cache.clear()
+                self._index.clear()
+                self._load_initial_data()
+                self.logger.info(f"Full reload complete. Total logs loaded: {len(self._log_cache)}")
+
                 deleted_count = 0
                 logs_to_delete = []
                 
-                # Find logs to delete
-                for log in self._log_cache.values():
+                # Find logs to delete from the now-complete cache
+                for log in list(self._log_cache.values()):
                     if log.execution_time < before_date:
                         logs_to_delete.append(log)
                 
+                if not logs_to_delete:
+                    self.logger.info(f"No logs found to delete before {before_date}")
+                    return True
+
                 # Remove from cache and index
                 for log in logs_to_delete:
-                    del self._log_cache[log.id]
+                    if log.id in self._log_cache:
+                        del self._log_cache[log.id]
                     self._index.remove_log(log)
                     deleted_count += 1
                 
-                # Rewrite log files without deleted logs
+                self.logger.info(f"Identified {deleted_count} logs for deletion. Rewriting storage.")
+
+                # Delete all existing physical log files before rewriting
+                if self.current_log_path.exists():
+                    self.current_log_path.unlink()
+                
+                archive_dir = self.logs_dir / "archive"
+                if archive_dir.exists():
+                    for f in archive_dir.glob("*.json*"):
+                        f.unlink()
+
+                # Rewrite the remaining logs into a new, clean log file
+                # Note: _rewrite_log_files will handle creating a new current_log_path
                 self._rewrite_log_files()
                 
-                self.logger.info(f"Deleted {deleted_count} logs before {before_date}")
+                self.logger.info(f"Successfully deleted {deleted_count} logs before {before_date}")
                 return True
                 
             except Exception as e:
-                self.logger.error(f"Error deleting logs: {e}")
+                self.logger.error(f"Error deleting logs: {e}", exc_info=True)
                 return False
     
     def export_logs(self, logs: List[ExecutionLog], format: str, file_path: str) -> bool:

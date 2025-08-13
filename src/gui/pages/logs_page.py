@@ -493,12 +493,14 @@ class LogExportWidget:
     
     def __init__(self, parent: tk.Widget, on_export: Optional[Callable[[str, str], None]] = None,
                  on_clear_logs: Optional[Callable[[datetime], None]] = None,
-                 on_backup: Optional[Callable[[], None]] = None):
+                 on_backup: Optional[Callable[[], None]] = None,
+                 on_clear_all_logs: Optional[Callable[[], None]] = None):
         """Initialize log export widget."""
         self.parent = parent
         self.on_export = on_export
         self.on_clear_logs = on_clear_logs
         self.on_backup = on_backup
+        self.on_clear_all_logs = on_clear_all_logs
         
         self._create_export_ui()
     
@@ -546,7 +548,7 @@ class LogExportWidget:
         ttk.Label(clear_frame, text="清理日誌:", font=("Segoe UI", 10, "bold")).pack(side=tk.LEFT, padx=(0, 10))
         
         # Clear options
-        self.clear_option = tk.StringVar(value="30_days")
+        self.clear_option = tk.StringVar(value="30天前")
         clear_options = [
             ("30天前", "30_days"),
             ("90天前", "90_days"),
@@ -577,6 +579,14 @@ class LogExportWidget:
             command=self._backup_logs
         )
         self.backup_btn.pack(side=tk.RIGHT)
+
+        # Clear all logs button
+        self.clear_all_btn = ttk.Button(
+            management_section,
+            text="🧹 清除全部日誌",
+            command=self._clear_all_logs
+        )
+        self.clear_all_btn.pack(side=tk.RIGHT, padx=(10, 0))
     
     def _export_logs(self):
         """Handle log export."""
@@ -637,6 +647,16 @@ class LogExportWidget:
         if self.on_backup:
             self.on_backup()
 
+    def _clear_all_logs(self):
+        """Handle clear all logs action."""
+        result = messagebox.askyesno(
+            "確認刪除全部日誌",
+            "這將刪除所有日誌記錄，且無法復原。\n\n確定要繼續嗎？",
+            icon="warning"
+        )
+        if result and self.on_clear_all_logs:
+            self.on_clear_all_logs()
+
 
 class ScheduleLogsPage(BasePage):
     """Enhanced schedule logs page with comprehensive log management."""
@@ -694,7 +714,8 @@ class ScheduleLogsPage(BasePage):
             self.frame,
             on_export=self._export_logs,
             on_clear_logs=self._clear_logs,
-            on_backup=self._backup_logs
+            on_backup=self._backup_logs,
+            on_clear_all_logs=self._clear_all_logs_all
         )
         
         # Logs table
@@ -805,6 +826,15 @@ class ScheduleLogsPage(BasePage):
         except Exception as e:
             messagebox.showerror("錯誤", f"匯出日誌失敗：{str(e)}")
     
+    def _clear_all_logs_all(self):
+        """Clear all logs via storage and refresh."""
+        try:
+            self.log_storage.clear_all_logs()
+            self._refresh_logs()
+            messagebox.showinfo("成功", "已清除全部日誌")
+        except Exception as e:
+            messagebox.showerror("錯誤", f"清除全部日誌失敗：{str(e)}")
+
     def _clear_logs(self, cutoff_date: datetime):
         """Clear logs before cutoff date."""
         try:

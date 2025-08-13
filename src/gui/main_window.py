@@ -387,13 +387,21 @@ Python版本: {platform.python_version()}
                 cutoff_date = datetime.now() - timedelta(days=30)
                 
                 # Clean old logs
-                deleted_count = log_storage.delete_logs(cutoff_date)
+                success = log_storage.delete_logs(cutoff_date)
                 
-                messagebox.showinfo(
-                    "清理完成", 
-                    f"已清理 {deleted_count} 筆舊日誌記錄"
-                )
-                self.set_status(f"已清理 {deleted_count} 筆日誌")
+                if success:
+                    messagebox.showinfo(
+                        "清理完成", 
+                        f"已清理 {cutoff_date.strftime('%Y-%m-%d')} 之前的日誌"
+                    )
+                    self.set_status("日誌清理完成")
+                    try:
+                        if hasattr(self, 'page_manager'):
+                            self.page_manager.refresh_current_page()
+                    except Exception:
+                        pass
+                else:
+                    messagebox.showerror("錯誤", "清理日誌失敗")
                 
         except Exception as e:
             messagebox.showerror("錯誤", f"清理日誌時發生錯誤:\n{str(e)}")
