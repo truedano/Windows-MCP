@@ -233,7 +233,7 @@ class ExecutionPreviewWidget(ttk.Frame):
             ActionType.MAXIMIZE_WINDOW: "最大化視窗",
             ActionType.RESTORE_WINDOW: "還原視窗",
             ActionType.FOCUS_WINDOW: "聚焦視窗",
-            ActionType.CLICK_ELEMENT: "點擊元素",
+            ActionType.CLICK_ABS: "點擊絕對座標",
             ActionType.TYPE_TEXT: "輸入文字",
             ActionType.SEND_KEYS: "發送按鍵",
             ActionType.CUSTOM_COMMAND: "執行自訂命令"
@@ -266,9 +266,9 @@ class ExecutionPreviewWidget(ttk.Frame):
                 content_lines.append((f"    視窗大小: {action_params['width']} x {action_params['height']}", "info"))
             
             if 'x' in action_params and 'y' in action_params:
-                if action_type == ActionType.MOVE_WINDOW:
+                if action_key == ActionType.MOVE_WINDOW:
                     content_lines.append((f"    移動位置: ({action_params['x']}, {action_params['y']})", "info"))
-                elif action_type in [ActionType.CLICK_ELEMENT, ActionType.TYPE_TEXT]:
+                elif action_key in [ActionType.CLICK_ABS, ActionType.TYPE_TEXT]:
                     content_lines.append((f"    操作位置: ({action_params['x']}, {action_params['y']})", "info"))
             
             if 'text' in action_params:
@@ -372,7 +372,7 @@ class ExecutionPreviewWidget(ttk.Frame):
         else:
             action_type_value = action_type
         
-        if action_type_value == ActionType.CUSTOM_COMMAND.value:
+        if action_type_value == ActionType.CUSTOM_COMMAND:
             content_lines.append(("  ⚠️ 自訂命令可能對系統造成影響，請謹慎使用", "warning"))
         
         # Check target app from config

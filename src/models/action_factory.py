@@ -56,7 +56,7 @@ class ActionParamsFactory:
                                ActionType.RESTORE_WINDOW, ActionType.FOCUS_WINDOW]:
                 return WindowControlParams(app_name=params['app_name'])
             
-            elif action_type == ActionType.CLICK_ELEMENT:
+            elif action_type == ActionType.CLICK_ABS:
                 return ClickElementParams(
                     app_name=params['app_name'],
                     x=params['x'],
@@ -103,7 +103,7 @@ class ActionParamsFactory:
             ActionType.MAXIMIZE_WINDOW: {'app_name': str},
             ActionType.RESTORE_WINDOW: {'app_name': str},
             ActionType.FOCUS_WINDOW: {'app_name': str},
-            ActionType.CLICK_ELEMENT: {'app_name': str, 'x': int, 'y': int},
+            # CLICK_ELEMENT removed; for absolute screen clicks, use ActionType.CLICK_ABS with {'x': int, 'y': int}
             ActionType.TYPE_TEXT: {'app_name': str, 'text': str, 'x': int, 'y': int},
             ActionType.SEND_KEYS: {'keys': list},
             ActionType.CUSTOM_COMMAND: {'command': str},
@@ -151,7 +151,7 @@ class ActionParamsFactory:
             ActionType.FOCUS_WINDOW: {
                 'app_name': '要聚焦的應用程式名稱'
             },
-            ActionType.CLICK_ELEMENT: {
+            ActionType.CLICK_ABS: {
                 'app_name': '目標應用程式名稱',
                 'x': '點擊位置的X座標',
                 'y': '點擊位置的Y座標'
@@ -258,7 +258,7 @@ def _map_action_to_operation_type(action_type: ActionType) -> OperationType:
         ActionType.MAXIMIZE_WINDOW: OperationType.WINDOW_CONTROL,
         ActionType.RESTORE_WINDOW: OperationType.WINDOW_CONTROL,
         ActionType.FOCUS_WINDOW: OperationType.WINDOW_CONTROL,
-        ActionType.CLICK_ELEMENT: OperationType.WINDOW_CONTROL,
+        ActionType.CLICK_ABS: OperationType.WINDOW_CONTROL,
         ActionType.TYPE_TEXT: OperationType.WINDOW_CONTROL,
         ActionType.SEND_KEYS: OperationType.WINDOW_CONTROL,
         ActionType.CUSTOM_COMMAND: OperationType.CUSTOM_COMMAND,
@@ -277,7 +277,7 @@ def get_action_type_display_name(action_type: ActionType) -> str:
         ActionType.MAXIMIZE_WINDOW: "最大化視窗",
         ActionType.RESTORE_WINDOW: "還原視窗",
         ActionType.FOCUS_WINDOW: "聚焦視窗",
-        ActionType.CLICK_ELEMENT: "點擊元素",
+        ActionType.CLICK_ABS: "點擊絕對座標", # 原點擊元素已改為絕對座標點擊
         ActionType.TYPE_TEXT: "輸入文字",
         ActionType.SEND_KEYS: "發送按鍵",
         ActionType.CUSTOM_COMMAND: "自訂命令",

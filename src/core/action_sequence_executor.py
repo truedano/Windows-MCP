@@ -308,7 +308,7 @@ class ActionSequenceExecutor:
             ActionType.MINIMIZE_WINDOW: 0.2,
             ActionType.MAXIMIZE_WINDOW: 0.2,
             ActionType.FOCUS_WINDOW: 0.3,
-            ActionType.CLICK_ELEMENT: 0.2,
+            ActionType.CLICK_ABS: 0.2,
             ActionType.DRAG_ELEMENT: 0.5,
             ActionType.MOVE_MOUSE: 0.1,
             ActionType.SCROLL: 0.3,

@@ -244,7 +244,7 @@ class TaskListWidget(ttk.Frame):
                 ActionType.MINIMIZE_WINDOW: "最小化視窗",
                 ActionType.MAXIMIZE_WINDOW: "最大化視窗",
                 ActionType.FOCUS_WINDOW: "聚焦視窗",
-                ActionType.CLICK_ELEMENT: "點擊元素",
+                ActionType.CLICK_ABS: "點擊絕對座標",
                 ActionType.TYPE_TEXT: "輸入文字",
                 ActionType.SEND_KEYS: "發送快捷鍵",
                 ActionType.CUSTOM_COMMAND: "自訂命令",

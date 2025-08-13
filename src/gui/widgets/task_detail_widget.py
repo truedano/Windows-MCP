@@ -191,7 +191,7 @@ class TaskDetailWidget(ttk.Frame):
             ActionType.RESIZE_WINDOW: "📏 Resize Window",
             ActionType.MOVE_WINDOW: "📍 Move Window",
             ActionType.SEND_KEYS: "⌨️ Send Keys",
-            ActionType.CLICK_ELEMENT: "👆 Click Element"
+            # CLICK_ELEMENT removed
         }
         return action_texts.get(action_type, f"❓ {action_type.value if hasattr(action_type, 'value') else str(action_type)}")
     
@@ -209,7 +209,7 @@ class TaskDetailWidget(ttk.Frame):
                 ActionType.MINIMIZE_WINDOW: "🔽 最小化視窗",
                 ActionType.MAXIMIZE_WINDOW: "🔼 最大化視窗",
                 ActionType.FOCUS_WINDOW: "🎯 聚焦視窗",
-                ActionType.CLICK_ELEMENT: "👆 點擊元素",
+                ActionType.CLICK_ABS: "👆 點擊絕對座標",
                 ActionType.TYPE_TEXT: "⌨️ 輸入文字",
                 ActionType.SEND_KEYS: "🔤 發送快捷鍵",
                 ActionType.CUSTOM_COMMAND: "⚙️ 自訂命令",

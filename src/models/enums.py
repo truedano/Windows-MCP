@@ -37,7 +37,7 @@ class ActionType(Enum):
     MAXIMIZE_WINDOW = "maximize_window"
     RESTORE_WINDOW = "restore_window"
     FOCUS_WINDOW = "focus_window"
-    CLICK_ELEMENT = "click_element"
+    # CLICK_ELEMENT removed; use CLICK_ABS in src.models.action.ActionType
     TYPE_TEXT = "type_text"
     SEND_KEYS = "send_keys"
     CUSTOM_COMMAND = "custom_command"

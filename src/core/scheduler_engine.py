@@ -411,10 +411,10 @@ class SchedulerEngine(ISchedulerEngine):
             elif action_type == ActionType.FOCUS_WINDOW:
                 return self.windows_controller.focus_window(target)
             
-            elif action_type == ActionType.CLICK_ELEMENT:
+            elif action_type == ActionType.CLICK_ABS:
                 x = params.get('x', 0)
                 y = params.get('y', 0)
-                return self.windows_controller.click_element(target, x, y)
+                return self.windows_controller.click_abs(x, y)
             
             elif action_type == ActionType.TYPE_TEXT:
                 text = params.get('text', '')
